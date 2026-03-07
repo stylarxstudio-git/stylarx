@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stylarx — Control Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══ RESET & ROOT ═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:         #050507;
+  --surface:    #0c0c0f;
+  --surface2:   #111116;
+  --surface3:   #16161c;
+  --border:     rgba(255,255,255,0.065);
+  --border2:    rgba(255,255,255,0.11);
+  --violet:     #7c6af5;
+  --violet-dim: rgba(124,106,245,0.18);
+  --violet-glow:rgba(124,106,245,0.3);
+  --cyan:       #22d3ee;
+  --cyan-dim:   rgba(34,211,238,0.14);
+  --green:      #10b981;
+  --green-dim:  rgba(16,185,129,0.14);
+  --amber:      #f59e0b;
+  --amber-dim:  rgba(245,158,11,0.14);
+  --red:        #ef4444;
+  --red-dim:    rgba(239,68,68,0.14);
+  --text:       #eeeef5;
+  --text2:      #9898a8;
+  --text3:      #55556a;
+  --mono:       'JetBrains Mono', monospace;
+  --sans:       'DM Sans', sans-serif;
+  --display:    'Syne', sans-serif;
+  --sidebar-w:  220px;
+  --topbar-h:   60px;
+  --radius:     12px;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.5; overflow: hidden; }
+
+/* ═══ LAYOUT ════════════════════════════════════════════════════════════════ */
+.app-layout { display: flex; height: 100vh; }
+
+/* ═══ SIDEBAR ═══════════════════════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  position: relative;
+  z-index: 10;
+}
+.sidebar-header {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-mark {
+  width: 32px; height: 32px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--violet) 0%, #a78bfa 50%, var(--cyan) 100%);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-weight: 800; font-size: 14px; color: #fff;
+  box-shadow: 0 0 16px var(--violet-glow);
+}
+.logo-text { font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: -0.02em; }
+.logo-sub  { font-size: 10px; color: var(--text3); font-weight: 400; letter-spacing: 0.04em; margin-top: 1px; }
+
+.nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav-section-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text3); padding: 10px 8px 6px; margin-top: 4px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px; border-radius: 8px;
+  cursor: pointer; color: var(--text2);
+  font-weight: 500; font-size: 13.5px;
+  transition: all 0.15s; position: relative;
+  user-select: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.nav-item.active {
+  background: var(--violet-dim);
+  color: var(--violet);
+}
+.nav-item.active .nav-icon { color: var(--violet); }
+.nav-icon { width: 18px; text-align: center; flex-shrink: 0; opacity: 0.8; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--violet-dim);
+  color: var(--violet);
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px; border-radius: 20px;
+  font-family: var(--mono);
+}
+
+.sidebar-footer {
+  padding: 12px 10px;
+  border-top: 1px solid var(--border);
+}
+.sidebar-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 8px;
+  cursor: pointer; transition: background 0.15s;
+}
+.sidebar-user:hover { background: rgba(255,255,255,0.04); }
+.user-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--violet), var(--cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff;
+}
+.user-name  { font-size: 13px; font-weight: 500; }
+.user-role  { font-size: 11px; color: var(--text3); }
+
+/* ═══ MAIN AREA ═════════════════════════════════════════════════════════════ */
+.main {
+  flex: 1; overflow: hidden;
+  display: flex; flex-direction: column;
+  background: var(--bg);
+}
+.topbar {
+  height: var(--topbar-h);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 28px;
+  flex-shrink: 0; gap: 16px;
+  background: rgba(5,5,7,0.8);
+  backdrop-filter: blur(20px);
+}
+.topbar-title { font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: -0.02em; }
+.topbar-sub   { font-size: 12px; color: var(--text3); }
+.topbar-spacer { flex: 1; }
+.topbar-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: 8px;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+}
+.topbar-btn:hover { background: var(--surface3); color: var(--text); border-color: var(--border2); }
+.topbar-status {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.content-scroll { flex: 1; overflow-y: auto; padding: 28px; }
+.content-scroll::-webkit-scrollbar { width: 4px; }
+.content-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+
+/* Panels */
+.panel { display: none; animation: fadeIn 0.25s ease; }
+.panel.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* ═══ CARDS ═════════════════════════════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+.card-sm { padding: 16px 20px; }
+.card-title {
+  font-family: var(--display); font-weight: 600; font-size: 13px;
+  letter-spacing: 0.02em; color: var(--text2); text-transform: uppercase;
+  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+}
+.card-title .ct-icon { font-size: 14px; }
+
+/* ═══ STAT CARDS ════════════════════════════════════════════════════════════ */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.stat-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  border-radius: 2px 2px 0 0;
+}
+.stat-card.violet::before { background: linear-gradient(90deg, var(--violet), transparent); }
+.stat-card.cyan::before   { background: linear-gradient(90deg, var(--cyan), transparent); }
+.stat-card.green::before  { background: linear-gradient(90deg, var(--green), transparent); }
+.stat-card.amber::before  { background: linear-gradient(90deg, var(--amber), transparent); }
+.stat-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.stat-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+.stat-value { font-family: var(--display); font-weight: 800; font-size: 34px; letter-spacing: -0.04em; line-height: 1; margin-bottom: 8px; }
+.stat-card.violet .stat-value { color: #a78bfa; }
+.stat-card.cyan   .stat-value { color: var(--cyan); }
+.stat-card.green  .stat-value { color: var(--green); }
+.stat-card.amber  .stat-value { color: var(--amber); }
+.stat-meta { font-size: 12px; color: var(--text3); }
+
+/* ═══ SPECIALTY PILLS ═══════════════════════════════════════════════════════ */
+.sp-colors = {
+  texture_artist:'#f59e0b', character_artist:'#a78bfa',
+  environment_artist:'#10b981', vfx_artist:'#22d3ee',
+  animator:'#f97316', motion_graphics:'#ec4899',
+  technical_artist:'#6366f1', game_developer:'#14b8a6',
+  '3d_generalist':'#84cc16', unknown:'#6b6b7a'
+};
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ═══ TABLE ═════════════════════════════════════════════════════════════════ */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.table-toolbar {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.search-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px 8px 36px;
+  color: var(--text);
+  font-family: var(--sans); font-size: 13px;
+  outline: none; width: 240px;
+  transition: border-color 0.2s;
+  position: relative;
+}
+.search-wrap { position: relative; }
+.search-wrap svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text3); pointer-events: none; }
+.search-input:focus { border-color: var(--violet); }
+select.filter-select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: var(--text2); font-family: var(--sans); font-size: 13px;
+  outline: none; cursor: pointer;
+}
+select.filter-select:focus { border-color: var(--violet); color: var(--text); }
+.tbar-spacer { flex: 1; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  padding: 10px 18px;
+  text-align: left;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--text3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  white-space: nowrap;
+}
+th:first-child { padding-left: 18px; }
+td {
+  padding: 11px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 13px; color: var(--text2);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.015); color: var(--text); }
+td.email-cell { font-family: var(--mono); font-size: 12px; color: var(--text); }
+.table-empty { padding: 60px; text-align: center; color: var(--text3); font-size: 14px; }
+.table-empty .te-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+.table-empty .te-text { color: var(--text3); }
+.table-empty .te-sub  { font-size: 12px; color: var(--text3); opacity: 0.6; margin-top: 4px; }
+.pagination { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.pg-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--text2); border-radius: 7px; padding: 5px 12px;
+  font-size: 12px; cursor: pointer; transition: all 0.15s;
+}
+.pg-btn:hover { background: var(--surface3); color: var(--text); }
+.pg-btn:disabled { opacity: 0.3; cursor: default; }
+.pg-info { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+
+/* ═══ BUTTONS ═══════════════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px; border-radius: 9px;
+  font-family: var(--display); font-weight: 600; font-size: 13.5px;
+  cursor: pointer; border: none; outline: none;
+  transition: all 0.15s; white-space: nowrap;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--violet) 0%, #9f8ff7 100%);
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(124,106,245,0.35);
+}
+.btn-primary:hover { opacity:0.88; transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,106,245,0.45); }
+.btn-primary:active { transform: translateY(0); }
+.btn-secondary {
+  background: var(--surface2); color: var(--text2);
+  border: 1px solid var(--border2);
+}
+.btn-secondary:hover { background: var(--surface3); color: var(--text); }
+.btn-danger {
+  background: rgba(239,68,68,0.1); color: var(--red);
+  border: 1px solid rgba(239,68,68,0.2);
+}
+.btn-danger:hover { background: rgba(239,68,68,0.18); }
+.btn-sm { padding: 6px 13px; font-size: 12px; }
+.btn-icon { padding: 8px; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+/* ═══ CHECKBOX ══════════════════════════════════════════════════════════════ */
+input[type="checkbox"] {
+  width: 15px; height: 15px;
+  accent-color: var(--violet);
+  cursor: pointer;
+}
+
+/* ═══ INPUTS ════════════════════════════════════════════════════════════════ */
+.form-group { margin-bottom: 18px; }
+.form-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+.form-input, .form-textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 11px 14px;
+  color: var(--text);
+  font-family: var(--sans); font-size: 14px;
+  outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus, .form-textarea:focus {
+  border-color: var(--violet);
+  box-shadow: 0 0 0 3px rgba(124,106,245,0.12);
+}
+.form-textarea { resize: vertical; min-height: 120px; font-family: var(--mono); font-size: 13px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ═══ PROGRESS ══════════════════════════════════════════════════════════════ */
+.progress-bar-wrap { background: rgba(255,255,255,0.06); border-radius: 100px; height: 6px; overflow: hidden; }
+.progress-bar-fill {
+  height: 100%; border-radius: 100px;
+  background: linear-gradient(90deg, var(--violet), var(--cyan));
+  transition: width 0.4s ease;
+  position: relative; overflow: hidden;
+}
+.progress-bar-fill::after {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: -100%;
+  width: 50%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer { to { left: 200%; } }
+
+/* ═══ SCRAPER LOG ═══════════════════════════════════════════════════════════ */
+.log-box {
+  background: #050507;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  height: 200px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+.log-box::-webkit-scrollbar { width: 3px; }
+.log-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); }
+.log-line { color: var(--text3); }
+.log-line.found { color: var(--green); }
+.log-line.err   { color: var(--red); }
+.log-line.done  { color: var(--cyan); }
+
+/* ═══ SOURCE GRID ═══════════════════════════════════════════════════════════ */
+.source-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.source-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 11px 13px;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  transition: all 0.15s;
+  user-select: none;
+}
+.source-card:hover { border-color: var(--border2); background: var(--surface3); }
+.source-card.selected { border-color: var(--violet); background: var(--violet-dim); }
+.source-card.selected .sc-name { color: var(--violet); }
+.sc-check { width: 16px; height: 16px; border: 1.5px solid var(--border2); border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+.source-card.selected .sc-check { background: var(--violet); border-color: var(--violet); }
+.sc-checkmark { color: #fff; font-size: 10px; display: none; }
+.source-card.selected .sc-checkmark { display: block; }
+.sc-name { font-size: 12px; font-weight: 500; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-type { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+/* ═══ SECTION TABS ══════════════════════════════════════════════════════════ */
+.tabs { display: flex; gap: 2px; margin-bottom: 24px; }
+.tab-btn {
+  padding: 8px 18px; border-radius: 8px;
+  font-family: var(--display); font-weight: 600; font-size: 13px;
+  cursor: pointer; color: var(--text3);
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+.tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.tab-btn.active { color: var(--violet); background: var(--violet-dim); border-color: rgba(124,106,245,0.2); }
+
+/* ═══ TOAST ═════════════════════════════════════════════════════════════════ */
+#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 13px; font-weight: 500;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  display: flex; align-items: center; gap: 10px;
+  animation: toastIn 0.25s cubic-bezier(0.23,1,0.32,1);
+  max-width: 340px;
+}
+@keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+.toast.success { border-color: rgba(16,185,129,0.3); }
+.toast.success::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--green); flex-shrink:0; }
+.toast.error { border-color: rgba(239,68,68,0.3); }
+.toast.error::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--red); flex-shrink:0; }
+.toast.info::before  { content:''; width:6px; height:6px; border-radius:50%; background:var(--violet); flex-shrink:0; }
+
+/* ═══ MODAL ═════════════════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeInBg 0.2s ease;
+}
+@keyframes fadeInBg { from {opacity:0} to {opacity:1} }
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 32px;
+  width: 520px; max-width: 90vw;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
+  animation: modalIn 0.25s cubic-bezier(0.23,1,0.32,1);
+}
+@keyframes modalIn { from {opacity:0;transform:scale(0.95)} to {opacity:1;transform:scale(1)} }
+.modal-title { font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: -0.02em; margin-bottom: 8px; }
+.modal-sub  { color: var(--text3); font-size: 13px; margin-bottom: 24px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+/* ═══ SPECIALTY BREAKDOWN ════════════════════════════════════════════════════ */
+.sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.sp-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  transition: border-color 0.2s;
+}
+.sp-card:hover { border-color: var(--border2); }
+.sp-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 8px; }
+.sp-count { font-family: var(--display); font-weight: 800; font-size: 26px; letter-spacing: -0.04em; }
+.sp-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.08); margin-top: 10px; overflow: hidden; }
+.sp-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+
+/* ═══ SEND STREAM ════════════════════════════════════════════════════════════ */
+.send-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-family: var(--mono); font-size: 12px;
+  animation: slideIn 0.2s ease;
+}
+@keyframes slideIn { from {opacity:0;transform:translateY(-4px)} to {opacity:1;transform:translateY(0)} }
+.send-item.sending { background: var(--surface2); color: var(--text3); }
+.send-item.sent    { background: var(--green-dim); color: var(--green); }
+.send-item.waiting { background: rgba(245,158,11,0.06); color: var(--amber); }
+.send-item.error   { background: var(--red-dim); color: var(--red); }
+.send-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.send-item.sent    .send-dot { background: var(--green); }
+.send-item.waiting .send-dot { background: var(--amber); animation: pulse 1s infinite; }
+.send-item.error   .send-dot { background: var(--red); }
+
+/* ═══ TWO-COL GRID ══════════════════════════════════════════════════════════ */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+/* ═══ MISC ══════════════════════════════════════════════════════════════════ */
+.section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.section-title  { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: -0.03em; }
+.section-sub    { font-size: 13px; color: var(--text3); margin-top: 2px; }
+.divider { height: 1px; background: var(--border); margin: 24px 0; }
+.sent-tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; }
+.sent-tag.yes { background: var(--green-dim); color: var(--green); }
+.sent-tag.no  { background: rgba(255,255,255,0.05); color: var(--text3); }
+.open-tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; }
+.open-tag.yes { background: var(--cyan-dim); color: var(--cyan); }
+.open-tag.no  { background: rgba(255,255,255,0.05); color: var(--text3); }
+.gap-16 { display: flex; gap: 16px; flex-wrap: wrap; }
+.gap-10 { display: flex; gap: 10px; flex-wrap: wrap; }
+.mb-20 { margin-bottom: 20px; }
+.mb-16 { margin-bottom: 16px; }
+.text-muted { color: var(--text3); }
+.text-sm { font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-mark">S</div>
+      <div>
+        <div class="logo-text">Stylarx</div>
+        <div class="logo-sub">Control Center</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <span class="nav-section-label">Overview</span>
+      <div class="nav-item active" onclick="showPanel('dashboard')">
+        <span class="nav-icon">◈</span> Dashboard
+      </div>
+
+      <span class="nav-section-label">Acquire</span>
+      <div class="nav-item" onclick="showPanel('scraper')">
+        <span class="nav-icon">⬡</span> Scraper
+        <span class="nav-badge" id="nb-scraper">—</span>
+      </div>
+      <div class="nav-item" onclick="showPanel('leads')">
+        <span class="nav-icon">◉</span> Leads
+        <span class="nav-badge" id="nb-leads">—</span>
+      </div>
+
+      <span class="nav-section-label">Send</span>
+      <div class="nav-item" onclick="showPanel('mailer')">
+        <span class="nav-icon">◎</span> Mailer
+        <span class="nav-badge" id="nb-sent">—</span>
+      </div>
+      <div class="nav-item" onclick="showPanel('sent')">
+        <span class="nav-icon">◷</span> Sent Log
+      </div>
+
+      <span class="nav-section-label">System</span>
+      <div class="nav-item" onclick="showPanel('settings')">
+        <span class="nav-icon">⚙</span> Settings
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="logout()">
+        <div class="user-avatar">S</div>
+        <div>
+          <div class="user-name">Admin</div>
+          <div class="user-role">Click to log out</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ═══════════════════════════════════════════════════════════════ -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+        <div class="topbar-sub" id="topbar-sub">Welcome back, Admin</div>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Ready</span>
+      </div>
+      <button class="topbar-btn" onclick="refreshAll()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+    </header>
+
+    <div class="content-scroll">
+
+      <!-- ══ DASHBOARD ══════════════════════════════════════════════════════ -->
+      <div class="panel active" id="panel-dashboard">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Dashboard</div>
+            <div class="section-sub">Real-time overview of your lead pipeline</div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card violet">
+            <div class="stat-label">Total Leads</div>
+            <div class="stat-value" id="stat-leads">—</div>
+            <div class="stat-meta">In found_leads.json</div>
+          </div>
+          <div class="stat-card cyan">
+            <div class="stat-label">Emails Sent</div>
+            <div class="stat-value" id="stat-sent">—</div>
+            <div class="stat-meta">All time</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">Opens Tracked</div>
+            <div class="stat-value" id="stat-opens">—</div>
+            <div class="stat-meta" id="stat-open-rate">—% open rate</div>
+          </div>
+          <div class="stat-card amber">
+            <div class="stat-label">Sent Today</div>
+            <div class="stat-value" id="stat-today">—</div>
+            <div class="stat-meta">Daily count</div>
+          </div>
+        </div>
+
+        <div class="two-col mb-20">
+          <div class="card">
+            <div class="card-title"><span class="ct-icon">◈</span> Specialty Breakdown</div>
+            <div id="dashboard-specialty" class="sp-grid">
+              <div class="text-muted text-sm">Loading…</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="ct-icon">◷</span> Quick Actions</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <button class="btn btn-primary" onclick="showPanel('scraper')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Start Scraping
+              </button>
+              <button class="btn btn-secondary" onclick="showPanel('mailer')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Send Emails
+              </button>
+              <button class="btn btn-secondary" onclick="reclassifyLeads()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Reclassify Leads
+              </button>
+              <div class="divider" style="margin:4px 0"></div>
+              <div style="font-size:12px;color:var(--text3)">
+                Target: <strong style="color:var(--text)">1,700 leads</strong> → 50–100 Founder sales at 3% conversion
+              </div>
+              <div id="progress-to-goal" style="margin-top:6px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:11px;color:var(--text3)">
+                  <span>Progress to 1,700</span><span id="goal-pct">0%</span>
+                </div>
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill" id="goal-bar" style="width:0%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title"><span class="ct-icon">◷</span> Recent Sent Log</div>
+          <div id="dashboard-recent">
+            <div class="text-muted text-sm">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SCRAPER ═════════════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-scraper">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Lead Scraper</div>
+            <div class="section-sub">Collect artist emails from 60+ sources</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:10px">
+            <button class="btn btn-secondary btn-sm" onclick="selectAllSources(true)">Select All</button>
+            <button class="btn btn-secondary btn-sm" onclick="selectAllSources(false)">Deselect All</button>
+            <button class="btn btn-primary" id="scrape-btn" onclick="startScrape()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Run Scraper
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="card mb-20" id="scrape-progress-card" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div class="card-title" style="margin:0">⬡ Live Progress</div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <span class="text-muted text-sm" id="scrape-counter">0 / 0 sources</span>
+              <button class="btn btn-danger btn-sm" onclick="stopScrape()">Stop</button>
+            </div>
+          </div>
+          <div class="progress-bar-wrap mb-16">
+            <div class="progress-bar-fill" id="scrape-prog-bar" style="width:0%"></div>
+          </div>
+          <div class="log-box" id="scrape-log"></div>
+          <div style="margin-top:12px;display:flex;gap:16px">
+            <span class="text-sm text-muted">Found this run: <strong style="color:var(--green)" id="scrape-found">0</strong></span>
+          </div>
+        </div>
+
+        <!-- Source tabs -->
+        <div class="tabs" id="source-tabs">
+          <button class="tab-btn active" onclick="switchSourceTab('reddit', this)">Reddit <span style="opacity:0.5;font-size:11px" id="tab-count-reddit"></span></button>
+          <button class="tab-btn" onclick="switchSourceTab('bing', this)">Bing Search <span style="opacity:0.5;font-size:11px" id="tab-count-bing"></span></button>
+          <button class="tab-btn" onclick="switchSourceTab('direct', this)">Direct Sources <span style="opacity:0.5;font-size:11px" id="tab-count-direct"></span></button>
+        </div>
+
+        <div id="source-panel-reddit" class="source-grid" style="margin-bottom:20px"></div>
+        <div id="source-panel-bing"   class="source-grid" style="margin-bottom:20px;display:none"></div>
+        <div id="source-panel-direct" class="source-grid" style="margin-bottom:20px;display:none"></div>
+      </div>
+
+      <!-- ══ LEADS ══════════════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-leads">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Found Leads</div>
+            <div class="section-sub">All scraped leads — filter, manage, send</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:10px">
+            <button class="btn btn-secondary btn-sm" onclick="exportLeads()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="confirmClear()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Clear All
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="sendSelectedLeads()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Send Selected
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="search-input" id="leads-search" placeholder="Search emails, sources…" oninput="renderLeadsTable()">
+            </div>
+            <select class="filter-select" id="sp-filter" onchange="renderLeadsTable()">
+              <option value="">All specialties</option>
+              <option value="character_artist">Character Artist</option>
+              <option value="texture_artist">Texture Artist</option>
+              <option value="environment_artist">Environment Artist</option>
+              <option value="vfx_artist">VFX Artist</option>
+              <option value="animator">Animator</option>
+              <option value="motion_graphics">Motion Graphics</option>
+              <option value="technical_artist">Technical Artist</option>
+              <option value="game_developer">Game Developer</option>
+              <option value="3d_generalist">3D Generalist</option>
+              <option value="unknown">Unknown</option>
+            </select>
+            <select class="filter-select" id="sent-filter" onchange="renderLeadsTable()">
+              <option value="">All</option>
+              <option value="unsent">Unsent only</option>
+              <option value="sent">Sent only</option>
+            </select>
+            <div class="tbar-spacer"></div>
+            <span class="text-muted text-sm" id="leads-count-label">—</span>
+            <button class="btn btn-secondary btn-sm" onclick="selectAllLeads()">Select All</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelectedLeads()">Delete Selected</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="leads-check-all" onchange="toggleAllLeads(this.checked)"></th>
+                <th>Email</th>
+                <th>Specialty</th>
+                <th>Source</th>
+                <th>Status</th>
+                <th>Found</th>
+              </tr>
+            </thead>
+            <tbody id="leads-tbody"></tbody>
+          </table>
+          <div class="pagination">
+            <span class="pg-info" id="leads-pg-info">Page 1 of 1</span>
+            <button class="pg-btn" id="leads-prev" onclick="leadsPage--; renderLeadsTable()" disabled>← Prev</button>
+            <button class="pg-btn" id="leads-next" onclick="leadsPage++; renderLeadsTable()" disabled>Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ MAILER ══════════════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-mailer">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Email Mailer</div>
+            <div class="section-sub">Send targeted campaigns with specialty-matched templates</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <!-- Left: Recipients + Controls -->
+          <div>
+            <div class="card mb-16">
+              <div class="card-title">◉ Recipients</div>
+              <div class="form-group">
+                <label class="form-label">Load from Leads</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn btn-secondary btn-sm" onclick="loadUnsentLeads()">Load All Unsent</button>
+                  <button class="btn btn-secondary btn-sm" onclick="loadLeadsBySpecialty()">Load by Specialty</button>
+                  <button class="btn btn-secondary btn-sm" onclick="clearMailerRecipients()">Clear</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Manual Emails (one per line)</label>
+                <textarea class="form-textarea" id="manual-emails" placeholder="user@example.com&#10;other@example.com" style="min-height:80px"></textarea>
+              </div>
+              <div style="font-size:12px;color:var(--text3)" id="recipient-count">0 recipients loaded</div>
+            </div>
+
+            <div class="card mb-16">
+              <div class="card-title">⚙ Send Options</div>
+              <div class="form-group">
+                <label class="form-label">Email Type</label>
+                <div style="display:flex;gap:8px">
+                  <button class="tab-btn active" id="type-initial" onclick="setEmailType('initial', this)">Initial Email</button>
+                  <button class="tab-btn" id="type-followup" onclick="setEmailType('followup', this)">Follow-up</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Custom Subject (optional — overrides template)</label>
+                <input type="text" class="form-input" id="custom-subject" placeholder="Leave blank to use auto specialty templates">
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">Custom Body (optional)</label>
+                <textarea class="form-textarea" id="custom-body" placeholder="Leave blank to use auto specialty templates. Use {name} for personalization."></textarea>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" id="send-btn" onclick="startSend()" style="width:100%">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Start Sending
+            </button>
+          </div>
+
+          <!-- Right: Live stream -->
+          <div>
+            <div class="card" style="height:100%">
+              <div class="card-title">◎ Live Send Stream</div>
+              <div id="send-stream" style="display:flex;flex-direction:column;gap:4px;max-height:480px;overflow-y:auto">
+                <div class="text-muted text-sm" style="padding:10px">Waiting to send…</div>
+              </div>
+              <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+                <div style="font-size:12px;color:var(--text3)">Sent: <strong style="color:var(--green)" id="send-count">0</strong></div>
+                <div style="font-size:12px;color:var(--text3)">Errors: <strong style="color:var(--red)" id="error-count">0</strong></div>
+                <div style="font-size:12px;color:var(--text3)" id="wait-status"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SENT LOG ════════════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-sent">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Sent Log</div>
+            <div class="section-sub">Every email sent, with open tracking</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <div class="search-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="search-input" id="sent-search" placeholder="Search sent emails…" oninput="renderSentTable()">
+            </div>
+            <div class="tbar-spacer"></div>
+            <span class="text-muted text-sm" id="sent-count-label">—</span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Subject</th>
+                <th>Specialty</th>
+                <th>Opened</th>
+                <th>Sent At</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody id="sent-tbody"></tbody>
+          </table>
+          <div class="pagination">
+            <span class="pg-info" id="sent-pg-info">Page 1 of 1</span>
+            <button class="pg-btn" id="sent-prev" onclick="sentPage--; renderSentTable()" disabled>← Prev</button>
+            <button class="pg-btn" id="sent-next" onclick="sentPage++; renderSentTable()" disabled>Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SETTINGS ════════════════════════════════════════════════════════ -->
+      <div class="panel" id="panel-settings">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Settings</div>
+            <div class="section-sub">Configure SMTP, tracking, and security</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-title">◈ SMTP Configuration</div>
+            <div class="form-group">
+              <label class="form-label">From Name</label>
+              <input type="text" class="form-input" id="cfg-from-name" placeholder="Stylarx">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">SMTP Host</label>
+                <input type="text" class="form-input" id="cfg-smtp-host" placeholder="smtp.gmail.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">SMTP Port</label>
+                <input type="text" class="form-input" id="cfg-smtp-port" placeholder="587">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address</label>
+              <input type="email" class="form-input" id="cfg-smtp-user" placeholder="you@gmail.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password / App Password</label>
+              <input type="password" class="form-input" id="cfg-smtp-pass" placeholder="••••••••••••">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveConfig()">Save SMTP Config</button>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <div class="card">
+              <div class="card-title">◷ Open Tracking</div>
+              <div class="form-group">
+                <label class="form-label">Public Tracking URL (from ngrok)</label>
+                <input type="text" class="form-input" id="cfg-tracking" placeholder="https://xxxx.ngrok.app">
+              </div>
+              <div class="text-sm text-muted mb-20" style="margin-bottom:12px">Run <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:var(--mono)">ngrok http 5000</code> to get your URL</div>
+              <button class="btn btn-secondary btn-sm" onclick="saveTrackingUrl()">Save Tracking URL</button>
+            </div>
+
+            <div class="card">
+              <div class="card-title">⬡ Change Password</div>
+              <div class="form-group">
+                <label class="form-label">Current Password</label>
+                <input type="password" class="form-input" id="pw-current" placeholder="Current password">
+              </div>
+              <div class="form-group">
+                <label class="form-label">New Password</label>
+                <input type="password" class="form-input" id="pw-new" placeholder="New password">
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="changePassword()">Update Password</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content-scroll -->
+  </main>
+</div><!-- /app-layout -->
+
+<!-- ═══ TOAST CONTAINER ════════════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<!-- ═══ MODAL ══════════════════════════════════════════════════════════════ -->
+<div id="modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">Confirm</div>
+    <div class="modal-sub"  id="modal-body">Are you sure?</div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<script>
+// ═══ STATE ════════════════════════════════════════════════════════════════════
+let allLeads = [];
+let allSent  = [];
+let leadsPage = 1;
+let sentPage  = 1;
+const PAGE_SIZE = 40;
+let selectedLeadEmails = new Set();
+let mailerRecipients = []; // [{email, specialty}]
+let emailType = 'initial';
+let scrapeInterval = null;
+let sendSentCount = 0;
+let sendErrorCount = 0;
+let sources = {reddit:[], bing:[], direct:[]};
+let selectedSources = new Set();
+
+// ═══ SPECIALTY CONFIG ═════════════════════════════════════════════════════════
+const SP_LABELS = {
+  texture_artist:'Texture Artist', character_artist:'Character Artist',
+  environment_artist:'Environment Artist', vfx_artist:'VFX Artist',
+  animator:'Animator', motion_graphics:'Motion Graphics',
+  technical_artist:'Technical Artist', game_developer:'Game Developer',
+  '3d_generalist':'3D Generalist', unknown:'Unknown',
+};
+const SP_COLORS = {
+  texture_artist:'#f59e0b', character_artist:'#a78bfa',
+  environment_artist:'#10b981', vfx_artist:'#22d3ee',
+  animator:'#f97316', motion_graphics:'#ec4899',
+  technical_artist:'#6366f1', game_developer:'#14b8a6',
+  '3d_generalist':'#84cc16', unknown:'#55556a',
+};
+
+function spPill(sp) {
+  const color = SP_COLORS[sp] || '#55556a';
+  const label = SP_LABELS[sp] || sp;
+  return `<span class="pill" style="background:${color}18;color:${color};border:1px solid ${color}28">${label}</span>`;
+}
+
+// ═══ NAVIGATION ═══════════════════════════════════════════════════════════════
+const PANEL_TITLES = {
+  dashboard:  ['Dashboard',   'Real-time overview of your lead pipeline'],
+  scraper:    ['Lead Scraper','Collect artist emails from 60+ sources'],
+  leads:      ['Found Leads', 'Manage, filter, and send to your leads'],
+  mailer:     ['Mailer',      'Send targeted campaigns'],
+  sent:       ['Sent Log',    'Every email sent with open tracking'],
+  settings:   ['Settings',    'Configure SMTP and tracking'],
+};
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(n => { if(n.getAttribute('onclick')?.includes(name)) n.classList.add('active'); });
+  const [title, sub] = PANEL_TITLES[name] || [name, ''];
+  document.getElementById('topbar-title').textContent = title;
+  document.getElementById('topbar-sub').textContent = sub;
+  if(name === 'leads')    loadLeads();
+  if(name === 'sent')     loadSent();
+  if(name === 'settings') loadConfig();
+  if(name === 'dashboard') loadDashboard();
+  if(name === 'scraper')  loadSources();
+}
+
+function logout() {
+  fetch('/logout').then(() => location.href = '/login');
+}
+
+// ═══ TOASTS ═══════════════════════════════════════════════════════════════════
+function toast(msg, type='info', dur=3500) {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(20px)'; t.style.transition='all 0.3s'; setTimeout(()=>t.remove(), 300); }, dur);
+}
+
+// ═══ MODAL ════════════════════════════════════════════════════════════════════
+function showModal(title, body, actions) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  const ac = document.getElementById('modal-actions');
+  ac.innerHTML = '';
+  actions.forEach(a => {
+    const b = document.createElement('button');
+    b.className = `btn ${a.cls || 'btn-secondary'}`;
+    b.textContent = a.label;
+    b.onclick = a.fn;
+    ac.appendChild(b);
+  });
+  document.getElementById('modal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+// ═══ API HELPERS ══════════════════════════════════════════════════════════════
+async function api(path, opts={}) {
+  const r = await fetch(path, {headers:{'Content-Type':'application/json'}, ...opts});
+  return r.json();
+}
+
+// ═══ REFRESH ALL ══════════════════════════════════════════════════════════════
+async function refreshAll() {
+  await loadDashboard();
+  toast('Refreshed', 'success', 2000);
+}
+
+// ═══ DASHBOARD ════════════════════════════════════════════════════════════════
+async function loadDashboard() {
+  const s = await api('/api/stats');
+  document.getElementById('stat-leads').textContent  = s.total_leads  ?? '—';
+  document.getElementById('stat-sent').textContent   = s.total_sent   ?? '—';
+  document.getElementById('stat-opens').textContent  = s.opens        ?? '—';
+  document.getElementById('stat-today').textContent  = s.sent_today   ?? '—';
+  document.getElementById('stat-open-rate').textContent = `${s.open_rate ?? 0}% open rate`;
+
+  // Badges
+  document.getElementById('nb-leads').textContent = s.total_leads || '—';
+  document.getElementById('nb-sent').textContent  = s.total_sent  || '—';
+
+  // Goal progress
+  const pct = Math.min(100, Math.round((s.total_leads / 1700) * 100));
+  document.getElementById('goal-pct').textContent = pct + '%';
+  document.getElementById('goal-bar').style.width = pct + '%';
+
+  // Specialty breakdown
+  const sp = s.specialty_counts || {};
+  const total = Object.values(sp).reduce((a,b)=>a+b,0) || 1;
+  const spEl = document.getElementById('dashboard-specialty');
+  const entries = Object.entries(sp).sort((a,b)=>b[1]-a[1]).slice(0,9);
+  if(!entries.length) { spEl.innerHTML = '<div class="text-muted text-sm">No leads yet.</div>'; }
+  else {
+    spEl.innerHTML = entries.map(([k,v]) => {
+      const color = SP_COLORS[k]||'#55556a';
+      const pct = Math.round((v/total)*100);
+      return `<div class="sp-card">
+        <div class="sp-label" style="color:${color}">${SP_LABELS[k]||k}</div>
+        <div class="sp-count" style="color:${color}">${v}</div>
+        <div class="sp-bar"><div class="sp-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Recent sent
+  const sent = await api('/api/sent');
+  const recent = sent.slice(-8).reverse();
+  const recEl = document.getElementById('dashboard-recent');
+  if(!recent.length) { recEl.innerHTML = '<div class="text-muted text-sm" style="padding:12px">No emails sent yet.</div>'; }
+  else {
+    recEl.innerHTML = `<table style="width:100%;border-collapse:collapse">
+      <tr>${['Email','Specialty','Opened','Sent At'].map(h=>`<th style="text-align:left;font-size:10.5px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--text3);padding:8px 12px">${h}</th>`).join('')}</tr>
+      ${recent.map(s=>`<tr>
+        <td style="padding:8px 12px;font-family:var(--mono);font-size:12px">${s.email}</td>
+        <td style="padding:8px 12px">${spPill(s.specialty||'unknown')}</td>
+        <td style="padding:8px 12px"><span class="open-tag ${s.opened?'yes':'no'}">${s.opened?'✓ Opened':'Pending'}</span></td>
+        <td style="padding:8px 12px;font-size:11px;color:var(--text3)">${s.sent_at?.slice(0,16)||'—'}</td>
+      </tr>`).join('')}
+    </table>`;
+  }
+}
+
+// ═══ SCRAPER ══════════════════════════════════════════════════════════════════
+async function loadSources() {
+  if(sources.reddit.length) return;
+  sources = await api('/api/sources');
+  renderSourcePanel('reddit', sources.reddit);
+  renderSourcePanel('bing',   sources.bing);
+  renderSourcePanel('direct', sources.direct);
+  document.getElementById('tab-count-reddit').textContent = `(${sources.reddit.length})`;
+  document.getElementById('tab-count-bing').textContent   = `(${sources.bing.length})`;
+  document.getElementById('tab-count-direct').textContent = `(${sources.direct.length})`;
+  // Select all by default
+  [...sources.reddit, ...sources.bing, ...sources.direct].forEach(s => selectedSources.add(s.key));
+  refreshSourceCards();
+}
+
+function renderSourcePanel(type, list) {
+  const el = document.getElementById(`source-panel-${type}`);
+  el.innerHTML = list.map(s => `
+    <div class="source-card ${selectedSources.has(s.key)?'selected':''}" id="sc-${s.key}" onclick="toggleSource('${s.key}')">
+      <div class="sc-check"><span class="sc-checkmark">✓</span></div>
+      <div><div class="sc-name">${s.label}</div><div class="sc-type">${s.source}</div></div>
+    </div>`).join('');
+}
+
+function toggleSource(key) {
+  if(selectedSources.has(key)) selectedSources.delete(key);
+  else selectedSources.add(key);
+  const el = document.getElementById(`sc-${key}`);
+  if(el) el.classList.toggle('selected', selectedSources.has(key));
+}
+
+function refreshSourceCards() {
+  document.querySelectorAll('.source-card').forEach(el => {
+    const key = el.id.replace('sc-','');
+    el.classList.toggle('selected', selectedSources.has(key));
+  });
+}
+
+function selectAllSources(val) {
+  [...sources.reddit, ...sources.bing, ...sources.direct].forEach(s => {
+    if(val) selectedSources.add(s.key); else selectedSources.delete(s.key);
+  });
+  refreshSourceCards();
+}
+
+function switchSourceTab(type, btn) {
+  ['reddit','bing','direct'].forEach(t => {
+    document.getElementById(`source-panel-${t}`).style.display = t===type?'grid':'none';
+  });
+  document.querySelectorAll('#source-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function startScrape() {
+  const sel = Array.from(selectedSources);
+  if(!sel.length) { toast('Select at least one source', 'error'); return; }
+  const r = await api('/api/scrape', {method:'POST', body:JSON.stringify({sources:sel})});
+  if(r.error) { toast(r.error, 'error'); return; }
+  document.getElementById('scrape-progress-card').style.display = '';
+  document.getElementById('scrape-btn').textContent = 'Running…';
+  document.getElementById('scrape-btn').disabled = true;
+  document.getElementById('status-dot').style.background = '#f59e0b';
+  document.getElementById('status-text').textContent = 'Scraping…';
+  scrapeInterval = setInterval(pollScrape, 1500);
+}
+
+async function pollScrape() {
+  const p = await api('/api/scrape/progress');
+  const pct = p.total_sources ? Math.round((p.done_sources/p.total_sources)*100) : 0;
+  document.getElementById('scrape-prog-bar').style.width = pct + '%';
+  document.getElementById('scrape-counter').textContent = `${p.done_sources} / ${p.total_sources} sources`;
+  document.getElementById('scrape-found').textContent = p.found || 0;
+  const log = document.getElementById('scrape-log');
+  const lines = p.log || [];
+  log.innerHTML = lines.slice(-60).map(l => {
+    let cls = 'log-line';
+    if(l.msg.startsWith('✓')) cls += ' found';
+    else if(l.msg.startsWith('✅')) cls += ' done';
+    else if(l.msg.toLowerCase().includes('err')) cls += ' err';
+    return `<div class="${cls}">[${l.time}] ${l.msg}</div>`;
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+  if(!p.running) {
+    clearInterval(scrapeInterval);
+    document.getElementById('scrape-btn').textContent = 'Run Scraper';
+    document.getElementById('scrape-btn').disabled = false;
+    document.getElementById('status-dot').style.background = '';
+    document.getElementById('status-text').textContent = 'Ready';
+    toast(`Done! Found ${p.found} new leads`, 'success', 5000);
+    loadDashboard();
+  }
+}
+
+async function stopScrape() {
+  await api('/api/scrape/stop', {method:'POST'});
+  clearInterval(scrapeInterval);
+  document.getElementById('scrape-btn').textContent = 'Run Scraper';
+  document.getElementById('scrape-btn').disabled = false;
+  toast('Scraper stopped', 'info');
+}
+
+// ═══ LEADS ════════════════════════════════════════════════════════════════════
+async function loadLeads() {
+  allLeads = await api('/api/leads');
+  leadsPage = 1;
+  renderLeadsTable();
+}
+
+function filteredLeads() {
+  const q = document.getElementById('leads-search')?.value?.toLowerCase() || '';
+  const sp = document.getElementById('sp-filter')?.value || '';
+  const st = document.getElementById('sent-filter')?.value || '';
+  return allLeads.filter(l => {
+    if(q && !l.email.toLowerCase().includes(q) && !(l.source||'').toLowerCase().includes(q)) return false;
+    if(sp && l.specialty !== sp) return false;
+    if(st === 'unsent' && l.sent) return false;
+    if(st === 'sent'   && !l.sent) return false;
+    return true;
+  });
+}
+
+function renderLeadsTable() {
+  const fl = filteredLeads();
+  const total = fl.length;
+  const pages = Math.max(1, Math.ceil(total/PAGE_SIZE));
+  if(leadsPage > pages) leadsPage = pages;
+  const slice = fl.slice((leadsPage-1)*PAGE_SIZE, leadsPage*PAGE_SIZE);
+
+  document.getElementById('leads-count-label').textContent = `${total} leads`;
+  document.getElementById('leads-pg-info').textContent = `Page ${leadsPage} of ${pages}`;
+  document.getElementById('leads-prev').disabled = leadsPage <= 1;
+  document.getElementById('leads-next').disabled = leadsPage >= pages;
+
+  const tbody = document.getElementById('leads-tbody');
+  if(!slice.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty"><div class="te-icon">◉</div><div class="te-text">No leads found</div><div class="te-sub">Run the scraper to collect leads</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = slice.map(l => {
+    const checked = selectedLeadEmails.has(l.email) ? 'checked' : '';
+    const dt = l.found_at?.slice(0,10) || '—';
+    return `<tr>
+      <td><input type="checkbox" ${checked} onchange="toggleLeadSelect('${l.email}', this.checked)"></td>
+      <td class="email-cell">${l.email}</td>
+      <td>${spPill(l.specialty||'unknown')}</td>
+      <td style="font-size:12px;color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.source||'—'}</td>
+      <td><span class="sent-tag ${l.sent?'yes':'no'}">${l.sent?'Sent':'New'}</span></td>
+      <td style="font-size:11px;color:var(--text3);font-family:var(--mono)">${dt}</td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleLeadSelect(email, checked) {
+  if(checked) selectedLeadEmails.add(email); else selectedLeadEmails.delete(email);
+}
+
+function toggleAllLeads(checked) {
+  filteredLeads().forEach(l => {
+    if(checked) selectedLeadEmails.add(l.email); else selectedLeadEmails.delete(l.email);
+  });
+  renderLeadsTable();
+}
+
+function selectAllLeads() {
+  filteredLeads().forEach(l => selectedLeadEmails.add(l.email));
+  document.getElementById('leads-check-all').checked = true;
+  renderLeadsTable();
+}
+
+async function deleteSelectedLeads() {
+  if(!selectedLeadEmails.size) { toast('Select leads first', 'error'); return; }
+  showModal('Delete Selected Leads', `Delete <strong>${selectedLeadEmails.size}</strong> selected leads? This cannot be undone.`, [
+    {label:'Cancel', cls:'btn-secondary', fn:closeModal},
+    {label:'Delete', cls:'btn-danger', fn: async () => {
+      closeModal();
+      await api('/api/leads/delete', {method:'POST', body:JSON.stringify({emails:[...selectedLeadEmails]})});
+      selectedLeadEmails.clear();
+      await loadLeads();
+      toast('Leads deleted', 'success');
+    }}
+  ]);
+}
+
+async function confirmClear() {
+  showModal('Clear All Leads', 'This will permanently delete all found leads. <strong>Sent log is NOT affected.</strong>', [
+    {label:'Cancel', cls:'btn-secondary', fn:closeModal},
+    {label:'Clear All', cls:'btn-danger', fn: async () => {
+      closeModal();
+      await api('/api/leads/clear', {method:'POST'});
+      await loadLeads();
+      toast('All leads cleared', 'success');
+    }}
+  ]);
+}
+
+async function reclassifyLeads() {
+  const r = await api('/api/leads/reclassify', {method:'POST'});
+  toast(`Reclassified ${r.changed} of ${r.total} leads`, 'success');
+  await loadDashboard();
+}
+
+function exportLeads() {
+  const fl = filteredLeads();
+  const csv = ['email,specialty,source,sent,found_at',
+    ...fl.map(l => `${l.email},${l.specialty||'unknown'},${(l.source||'').replace(/,/g,' ')},${l.sent?'yes':'no'},${l.found_at?.slice(0,10)||''}`)
+  ].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `stylarx_leads_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function sendSelectedLeads() {
+  const emails = filteredLeads().filter(l=>selectedLeadEmails.has(l.email) && !l.sent);
+  if(!emails.length) { toast('No unsent leads selected', 'error'); return; }
+  mailerRecipients = emails.map(l=>({email:l.email, specialty:l.specialty||'unknown'}));
+  document.getElementById('manual-emails').value = '';
+  updateRecipientCount();
+  showPanel('mailer');
+  toast(`Loaded ${mailerRecipients.length} recipients`, 'info');
+}
+
+// ═══ MAILER ═══════════════════════════════════════════════════════════════════
+function setEmailType(type, btn) {
+  emailType = type;
+  document.querySelectorAll('#type-initial, #type-followup').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+async function loadUnsentLeads() {
+  const leads = await api('/api/leads');
+  mailerRecipients = leads.filter(l=>!l.sent).map(l=>({email:l.email, specialty:l.specialty||'unknown'}));
+  document.getElementById('manual-emails').value = '';
+  updateRecipientCount();
+  toast(`Loaded ${mailerRecipients.length} unsent leads`, 'success');
+}
+
+async function loadLeadsBySpecialty() {
+  showModal('Load by Specialty', `
+    <select class="filter-select" id="modal-sp-filter" style="width:100%;margin-top:8px">
+      <option value="">All unsent</option>
+      ${Object.entries(SP_LABELS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+    </select>`, [
+    {label:'Cancel', cls:'btn-secondary', fn:closeModal},
+    {label:'Load', cls:'btn-primary', fn: async () => {
+      const sp = document.getElementById('modal-sp-filter').value;
+      closeModal();
+      const leads = await api('/api/leads');
+      mailerRecipients = leads.filter(l => !l.sent && (!sp || l.specialty===sp))
+        .map(l=>({email:l.email, specialty:l.specialty||'unknown'}));
+      document.getElementById('manual-emails').value = '';
+      updateRecipientCount();
+      toast(`Loaded ${mailerRecipients.length} recipients`, 'success');
+    }}
+  ]);
+}
+
+function clearMailerRecipients() {
+  mailerRecipients = [];
+  document.getElementById('manual-emails').value = '';
+  updateRecipientCount();
+}
+
+function updateRecipientCount() {
+  const manual = document.getElementById('manual-emails').value.trim().split('\n').filter(e=>e.trim());
+  const total = mailerRecipients.length + manual.length;
+  document.getElementById('recipient-count').textContent = `${total} recipient${total!==1?'s':''} loaded`;
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('manual-emails')?.addEventListener('input', updateRecipientCount);
+});
+
+async function startSend() {
+  // Build recipients
+  const manual = document.getElementById('manual-emails').value.trim().split('\n')
+    .filter(e=>e.trim()).map(e=>({email:e.trim(), specialty:'unknown'}));
+  const all = [...mailerRecipients, ...manual];
+  if(!all.length) { toast('No recipients', 'error'); return; }
+
+  const subject = document.getElementById('custom-subject').value.trim();
+  const body    = document.getElementById('custom-body').value.trim();
+  const isFollowup = emailType === 'followup';
+
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('send-btn').textContent = 'Sending…';
+  const stream = document.getElementById('send-stream');
+  stream.innerHTML = '';
+  sendSentCount = 0;
+  sendErrorCount = 0;
+  document.getElementById('send-count').textContent = '0';
+  document.getElementById('error-count').textContent = '0';
+
+  try {
+    const resp = await fetch('/api/send', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({emails: all, subject, body, followup: isFollowup})
+    });
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while(true) {
+      const {done, value} = await reader.read();
+      if(done) break;
+      buf += decoder.decode(value);
+      const parts = buf.split('\n\n');
+      buf = parts.pop();
+      for(const part of parts) {
+        const line = part.replace('data: ','').trim();
+        if(!line) continue;
+        try {
+          const d = JSON.parse(line);
+          if(d.sent) {
+            sendSentCount++;
+            document.getElementById('send-count').textContent = sendSentCount;
+            document.getElementById('wait-status').textContent = '';
+            appendSendItem(stream, 'sent', d.sent, `✓ Sent — ${SP_LABELS[d.specialty]||d.specialty}`);
+          } else if(d.wait) {
+            document.getElementById('wait-status').textContent = `Cooling down ${d.wait}s…`;
+          } else if(d.error) {
+            sendErrorCount++;
+            document.getElementById('error-count').textContent = sendErrorCount;
+            appendSendItem(stream, 'error', d.error, `✗ Error: ${d.msg}`);
+          } else if(d.done) {
+            appendSendItem(stream, 'sent', '——', `✅ All done! Sent ${sendSentCount}, Errors ${sendErrorCount}`);
+            document.getElementById('wait-status').textContent = '';
+            toast(`Sent ${sendSentCount} emails`, 'success', 5000);
+            document.getElementById('send-btn').disabled = false;
+            document.getElementById('send-btn').textContent = 'Start Sending';
+            loadDashboard();
+          }
+        } catch(e) {}
+      }
+    }
+  } catch(e) {
+    toast('Send failed: ' + e.message, 'error');
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('send-btn').textContent = 'Start Sending';
+  }
+}
+
+function appendSendItem(container, type, email, msg) {
+  const div = document.createElement('div');
+  div.className = `send-item ${type}`;
+  div.innerHTML = `<div class="send-dot"></div><span style="flex:1;overflow:hidden;text-overflow:ellipsis">${email}</span><span style="color:inherit;opacity:0.7;font-size:11px">${msg}</span>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+// ═══ SENT LOG ═════════════════════════════════════════════════════════════════
+async function loadSent() {
+  allSent = await api('/api/sent');
+  sentPage = 1;
+  renderSentTable();
+}
+
+function renderSentTable() {
+  const q = document.getElementById('sent-search')?.value?.toLowerCase() || '';
+  const fl = allSent.filter(s => !q || s.email?.toLowerCase().includes(q));
+  const total = fl.length;
+  const pages = Math.max(1, Math.ceil(total/PAGE_SIZE));
+  if(sentPage > pages) sentPage = pages;
+  const slice = fl.slice().reverse().slice((sentPage-1)*PAGE_SIZE, sentPage*PAGE_SIZE);
+  document.getElementById('sent-count-label').textContent = `${total} sent`;
+  document.getElementById('sent-pg-info').textContent = `Page ${sentPage} of ${pages}`;
+  document.getElementById('sent-prev').disabled = sentPage <= 1;
+  document.getElementById('sent-next').disabled = sentPage >= pages;
+  const tbody = document.getElementById('sent-tbody');
+  if(!slice.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="table-empty"><div class="te-icon">◎</div><div class="te-text">No emails sent yet</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = slice.map(s => `<tr>
+    <td class="email-cell">${s.email}</td>
+    <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.subject||'—'}</td>
+    <td>${spPill(s.specialty||'unknown')}</td>
+    <td><span class="open-tag ${s.opened?'yes':'no'}">${s.opened?'✓ Opened':'Pending'}</span></td>
+    <td style="font-size:11px;color:var(--text3);font-family:var(--mono)">${s.sent_at?.slice(0,16)||'—'}</td>
+    <td><span class="sent-tag ${s.followup?'yes':'no'}">${s.followup?'Follow-up':'Initial'}</span></td>
+  </tr>`).join('');
+}
+
+// ═══ SETTINGS ═════════════════════════════════════════════════════════════════
+async function loadConfig() {
+  const c = await api('/api/config');
+  document.getElementById('cfg-from-name').value  = c.from_name  || '';
+  document.getElementById('cfg-smtp-host').value  = c.smtp_host  || '';
+  document.getElementById('cfg-smtp-port').value  = c.smtp_port  || '';
+  document.getElementById('cfg-smtp-user').value  = c.smtp_user  || '';
+  document.getElementById('cfg-tracking').value   = c.tracking_url|| '';
+}
+
+async function saveConfig() {
+  await api('/api/config', {method:'POST', body: JSON.stringify({
+    from_name:    document.getElementById('cfg-from-name').value,
+    smtp_host:    document.getElementById('cfg-smtp-host').value,
+    smtp_port:    document.getElementById('cfg-smtp-port').value,
+    smtp_user:    document.getElementById('cfg-smtp-user').value,
+    smtp_pass:    document.getElementById('cfg-smtp-pass').value,
+  })});
+  toast('SMTP config saved', 'success');
+}
+
+async function saveTrackingUrl() {
+  await api('/api/config', {method:'POST', body: JSON.stringify({tracking_url: document.getElementById('cfg-tracking').value})});
+  toast('Tracking URL saved', 'success');
+}
+
+async function changePassword() {
+  const cur = document.getElementById('pw-current').value;
+  const nw  = document.getElementById('pw-new').value;
+  if(!cur||!nw) { toast('Fill both fields', 'error'); return; }
+  const r = await api('/api/change-password', {method:'POST', body:JSON.stringify({current:cur,new:nw})});
+  if(r.error) { toast(r.error, 'error'); return; }
+  toast('Password updated! Log in with new password next time.', 'success');
+  document.getElementById('pw-current').value = '';
+  document.getElementById('pw-new').value = '';
+}
+
+// ═══ INIT ═════════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  loadDashboard();
+  loadSources();
+});
+</script>
+</body></html>
