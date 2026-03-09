@@ -128,7 +128,7 @@ tr:hover td{background:rgba(255,255,255,.015);}
 .tbl-empty{padding:44px;text-align:center;color:var(--text3);}
 .tbl-icon{font-size:30px;margin-bottom:8px;opacity:.25;}
 
-/* Pills - kept accent colors for contrast but removed colored backgrounds */
+/* Pills */
 .sp{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;letter-spacing:.04em;}
 .sp-character_artist{background:rgba(124,58,237,.2);color:#A78BFA;text-shadow:0 0 8px rgba(167,139,250,.4);}
 .sp-texture_artist{background:rgba(217,119,6,.2);color:#FCD34D;text-shadow:0 0 8px rgba(252,211,77,.35);}
@@ -237,13 +237,234 @@ tr:hover td{background:rgba(255,255,255,.015);}
     <div><span class="tb-title" id="ttl">Dashboard</span><span class="tb-sub" id="tsub"></span></div>
   </div>
   <div class="content">
-  <!-- [REST OF YOUR HTML CONTENT GOES HERE EXACTLY AS YOU PASTED IT BEFORE] -->
-  <!-- I am omitting the middle HTML for brevity in this response block, 
-       but you should keep your original HTML structure for the panels (dash, leads, send, etc.) 
-       and just use this updated CSS and JS. -->
-       
-  <!-- ... [YOUR PANEL HTML CONTENT] ... -->
-  
+
+  <!-- DASHBOARD -->
+  <div class="panel on" id="p-dash">
+    <div class="stats">
+      <div class="stile ac"><div class="sval" id="d-l">—</div><div class="slbl">Leads in Queue</div></div>
+      <div class="stile gr"><div class="sval" id="d-s">—</div><div class="slbl">Total Sent</div></div>
+      <div class="stile"><div class="sval" id="d-t">—</div><div class="slbl">Sent Today</div></div>
+      <div class="stile am"><div class="sval" id="d-o">—%</div><div class="slbl">Open Rate</div></div>
+    </div>
+    <div class="two">
+      <div class="card">
+        <div class="ctitle">Queue by Specialty</div>
+        <div id="d-spgrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;"></div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Recent Sent</div>
+        <div id="d-recent"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADS -->
+  <div class="panel" id="p-leads">
+    <div class="sec-head">
+      <div><div class="sec-title">Leads</div><div class="sec-sub">All emails in your outreach queue</div></div>
+      <div class="sec-acts">
+        <button class="btn bg bsm" onclick="showAddModal()">+ Add Emails</button>
+        <button class="btn bg bsm" onclick="exportCSV()">↓ Export</button>
+        <button class="btn bd bsm" onclick="clearAll()">✕ Clear All</button>
+      </div>
+    </div>
+    <div class="tw">
+      <div class="ttb">
+        <input class="tsrch" id="ls-q" placeholder="Search emails…" oninput="rl()">
+        <select class="fsel" id="ls-sp" onchange="rl()" style="width:165px;">
+          <option value="">All Specialties</option>
+          <option value="character_artist">Character Artist</option>
+          <option value="texture_artist">Texture Artist</option>
+          <option value="environment_artist">Environment Artist</option>
+          <option value="vfx_artist">VFX Artist</option>
+          <option value="animator">Animator</option>
+          <option value="motion_graphics">Motion Graphics</option>
+          <option value="technical_artist">Technical Artist</option>
+          <option value="game_developer">Game Developer</option>
+          <option value="3d_generalist">3D Generalist</option>
+          <option value="concept_artist">Concept Artist</option>
+          <option value="unknown">General</option>
+        </select>
+        <div style="flex:1;"></div>
+        <span class="tinfo" id="ls-lbl">— leads</span>
+        <button class="btn bg bsm" onclick="selAll()">Select All</button>
+        <button class="btn bd bsm" onclick="delSel()">Delete Selected</button>
+      </div>
+      <table><thead><tr>
+        <th><input type="checkbox" id="chk-all" onchange="togAll(this.checked)" style="accent-color:var(--accent);"></th>
+        <th>Email</th><th>Specialty</th><th>Source</th><th>Added</th>
+      </tr></thead><tbody id="l-tb"></tbody></table>
+      <div class="pag">
+        <span style="flex:1;font-size:11px;color:var(--text3);" id="l-pg">1 / 1</span>
+        <button class="pgb" id="l-prev" onclick="lp--;rl()" disabled>← Prev</button>
+        <button class="pgb" id="l-next" onclick="lp++;rl()" disabled>Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEND EMAILS -->
+  <div class="panel" id="p-send">
+    <div class="sec-head">
+      <div><div class="sec-title">Send Emails</div><div class="sec-sub">Pick a specialty → review recipients → send initial outreach</div></div>
+    </div>
+    <div class="two">
+      <!-- Left col -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div class="ctitle">1 — Pick Specialty</div>
+          <select class="fsel" id="sp-pick" onchange="loadSendList()" style="margin-bottom:8px;">
+            <option value="">— Select specialty —</option>
+          </select>
+          <div id="sp-hint" style="font-size:11px;color:var(--text3);"></div>
+        </div>
+        <div class="card" style="flex:1;">
+          <div class="ctitle">2 — Custom Override (optional)</div>
+          <p style="font-size:11.5px;color:var(--text3);margin-bottom:12px;line-height:1.5;">Leave blank to auto-pick the right template per specialty. Fill in to override for everyone in this batch.</p>
+          <div class="fg"><label class="fl">Subject</label><input class="fi" id="m-subj" placeholder="Leave blank for auto-template"></div>
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Body (use {name} for personalisation)</label><textarea class="ft" id="m-body" style="min-height:110px;" placeholder="Leave blank for auto-template"></textarea></div>
+        </div>
+        <button class="btn bp" id="m-btn" onclick="doSend()" style="padding:13px;font-size:14px;font-weight:600;" disabled>✉ Send to Selected</button>
+      </div>
+      <!-- Right col -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="elist" id="send-list">
+          <div class="tbl-empty"><div class="tbl-icon">✉</div>Select a specialty to load recipients</div>
+        </div>
+        <div class="card" style="padding:14px;">
+          <div class="ctitle" style="margin-bottom:8px;">Live Feed</div>
+          <div class="slog" id="m-log"><div class="sl">Waiting…</div></div>
+          <div class="srow">
+            <span>Sent: <strong id="m-sc" style="color:var(--green);text-shadow:0 0 6px rgba(16,185,129,.4);">0</strong></span>
+            <span>Errors: <strong id="m-ec" style="color:var(--red);">0</strong></span>
+            <span>Skipped: <strong id="m-kc" style="color:var(--text3);">0</strong></span>
+            <span id="m-wt" style="margin-left:auto;color:var(--amber);font-size:11px;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOLLOW-UP -->
+  <div class="panel" id="p-fu">
+    <div class="sec-head">
+      <div><div class="sec-title">Follow-Up</div><div class="sec-sub">Send follow-ups to leads who received an initial email</div></div>
+    </div>
+    <div class="two">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div class="ctitle">1 — Pick Specialty</div>
+          <select class="fsel" id="fu-pick" onchange="loadFuList()" style="margin-bottom:8px;">
+            <option value="">— Select specialty —</option>
+          </select>
+          <div id="fu-hint" style="font-size:11px;color:var(--text3);"></div>
+        </div>
+        <div class="card" style="flex:1;">
+          <div class="ctitle">2 — Custom Override (optional)</div>
+          <div class="fg"><label class="fl">Subject</label><input class="fi" id="fu-subj" placeholder="Leave blank for auto-template"></div>
+          <div class="fg" style="margin-bottom:0;"><label class="fl">Body</label><textarea class="ft" id="fu-body" style="min-height:110px;" placeholder="Leave blank for auto-template"></textarea></div>
+        </div>
+        <button class="btn bp" id="fu-btn" onclick="doFu()" style="padding:13px;font-size:14px;font-weight:600;" disabled>↩ Send Follow-Ups</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="elist" id="fu-list">
+          <div class="tbl-empty"><div class="tbl-icon">↩</div>Select a specialty to load contacts</div>
+        </div>
+        <div class="card" style="padding:14px;">
+          <div class="ctitle" style="margin-bottom:8px;">Live Feed</div>
+          <div class="slog" id="fu-log"><div class="sl">Waiting…</div></div>
+          <div class="srow">
+            <span>Sent: <strong id="fu-sc" style="color:var(--green);text-shadow:0 0 6px rgba(16,185,129,.4);">0</strong></span>
+            <span>Errors: <strong id="fu-ec" style="color:var(--red);">0</strong></span>
+            <span>Skipped: <strong id="fu-kc" style="color:var(--text3);">0</strong></span>
+            <span id="fu-wt" style="margin-left:auto;color:var(--amber);font-size:11px;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SENT LOG -->
+  <div class="panel" id="p-log">
+    <div class="sec-head">
+      <div><div class="sec-title">Sent Log</div><div class="sec-sub">Full history with open tracking</div></div>
+    </div>
+    <div class="tw">
+      <div class="ttb">
+        <input class="tsrch" id="sl-q" placeholder="Search…" oninput="rs()">
+        <select class="fsel" id="sl-sp" onchange="rs()" style="width:165px;">
+          <option value="">All Specialties</option>
+          <option value="character_artist">Character Artist</option>
+          <option value="texture_artist">Texture Artist</option>
+          <option value="environment_artist">Environment Artist</option>
+          <option value="vfx_artist">VFX Artist</option>
+          <option value="animator">Animator</option>
+          <option value="motion_graphics">Motion Graphics</option>
+          <option value="technical_artist">Technical Artist</option>
+          <option value="game_developer">Game Developer</option>
+          <option value="3d_generalist">3D Generalist</option>
+          <option value="concept_artist">Concept Artist</option>
+        </select>
+        <div style="flex:1;"></div>
+        <span class="tinfo" id="sl-lbl">— sent</span>
+      </div>
+      <table><thead><tr>
+        <th>Email</th><th>Subject</th><th>Specialty</th><th>Type</th><th>Opened</th><th>Date</th>
+      </tr></thead><tbody id="s-tb"></tbody></table>
+      <div class="pag">
+        <span style="flex:1;font-size:11px;color:var(--text3);" id="s-pg">1 / 1</span>
+        <button class="pgb" id="s-prev" onclick="sp--;rs()" disabled>← Prev</button>
+        <button class="pgb" id="s-next" onclick="sp++;rs()" disabled>Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEMPLATES -->
+  <div class="panel" id="p-tpl">
+    <div class="sec-head">
+      <div><div class="sec-title">Templates</div><div class="sec-sub">All email templates by specialty — auto-picked when you send</div></div>
+    </div>
+    <div class="notice blue" style="margin-bottom:18px;">
+      <strong>How templates work:</strong> When you send with blank Subject/Body, Stylarx auto-picks a template for each recipient's specialty. Every send rotates through the 3 variations so nobody gets the same email twice. Follow-ups use the follow-up variants automatically.
+    </div>
+    <div id="tpl-wrap"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="panel" id="p-cfg">
+    <div class="sec-head">
+      <div><div class="sec-title">Settings</div><div class="sec-sub">SMTP, tracking and security</div></div>
+    </div>
+    <div class="two">
+      <div class="card">
+        <div class="ctitle">SMTP Configuration</div>
+        <div class="fg"><label class="fl">Host</label><input class="fi" id="c-host" placeholder="smtp.gmail.com"></div>
+        <div class="fg"><label class="fl">Port</label><input class="fi" id="c-port" placeholder="587"></div>
+        <div class="fg"><label class="fl">Email</label><input class="fi" id="c-user" placeholder="you@gmail.com"></div>
+        <div class="fg"><label class="fl">App Password</label><input type="password" class="fi" id="c-pass" placeholder="Gmail App Password — leave blank to keep current"></div>
+        <div class="fg"><label class="fl">From Name</label><input class="fi" id="c-name" placeholder="Stylarx"></div>
+        <button class="btn bp bsm" onclick="saveCfg()">Save SMTP</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div class="ctitle">Open Tracking</div>
+          <div class="fg"><label class="fl">Your Railway URL</label><input class="fi" id="c-url" placeholder="https://your-app.up.railway.app"></div>
+          <button class="btn bp bsm" onclick="saveCfg()" style="margin-bottom:14px;">Save URL</button>
+          <div class="notice amber">
+            <strong>How it works:</strong> We embed a 1×1 invisible tracking pixel in each HTML email — the same method used by Mailchimp, HubSpot, and Superhuman. When the recipient opens the email, their client loads the pixel and we mark it as opened.
+            <br><br>
+            <strong>Accuracy:</strong> Works reliably on Gmail (desktop + Android), Outlook, and most web clients. Apple Mail on iOS 15+ has Mail Privacy Protection which pre-fetches images — those will always show as "opened" even if the person hasn't read it. There is no workaround for this. On average, expect ~85–90% accuracy across a typical email list.
+          </div>
+        </div>
+        <div class="card">
+          <div class="ctitle">Change Password</div>
+          <div class="fg"><label class="fl">Current Password</label><input type="password" class="fi" id="pw-c"></div>
+          <div class="fg"><label class="fl">New Password</label><input type="password" class="fi" id="pw-n"></div>
+          <button class="btn bg bsm" onclick="chgPw()">Update</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -259,9 +480,468 @@ tr:hover td{background:rgba(255,255,255,.015);}
 <div id="tc"></div>
 
 <script>
-// [YOUR EXISTING JAVASCRIPT GOES HERE]
-// No changes needed in the JS logic for the color update.
-// ... [PASTE THE REST OF YOUR JS CODE] ...
+// ── Constants ──────────────────────────────────────────────────────────────────
+const SPS = {
+  character_artist:'Character Artist', texture_artist:'Texture Artist',
+  environment_artist:'Environment Artist', vfx_artist:'VFX Artist',
+  animator:'Animator', motion_graphics:'Motion Graphics',
+  technical_artist:'Technical Artist', game_developer:'Game Developer',
+  '3d_generalist':'3D Generalist', concept_artist:'Concept Artist', unknown:'General'
+};
+const PG = 50;
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let leads=[], sent=[], lp=1, sp=1, sel=new Set();
+let sendRecip=[], fuRecip=[];
+let ms=0,me=0,mk=0, fs=0,fe=0,fk=0;
+
+// ── Nav ────────────────────────────────────────────────────────────────────────
+const PANELS = {
+  dash:  ['Dashboard','Real-time overview'],
+  leads: ['Leads','Your email queue'],
+  send:  ['Send Emails','Select specialty → review → send'],
+  fu:    ['Follow-Up','Send follow-ups to previous contacts'],
+  log:   ['Sent Log','Full history with open tracking'],
+  tpl:   ['Templates','All email templates by specialty'],
+  cfg:   ['Settings','SMTP, tracking, security'],
+};
+function go(id, el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  document.getElementById('p-'+id).classList.add('on');
+  if(el) el.classList.add('on');
+  const [t,s]=PANELS[id]||[id,''];
+  document.getElementById('ttl').textContent=t;
+  document.getElementById('tsub').textContent=s;
+  if(id==='dash') loadDash();
+  if(id==='leads') loadLeads();
+  if(id==='log') loadLog();
+  if(id==='cfg') loadCfg();
+  if(id==='send') initSend();
+  if(id==='fu') initFu();
+  if(id==='tpl') loadTpl();
+}
+
+// ── API helpers ────────────────────────────────────────────────────────────────
+const api = (u,o={})=>fetch(u,{headers:{'Content-Type':'application/json'},...o}).then(r=>r.json());
+const pill = sp=>`<span class="sp sp-${sp||'unknown'}">${SPS[sp]||sp||'General'}</span>`;
+const ts = ()=>new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+function toast(msg,t='in',d=3200){
+  const el=document.createElement('div');el.className=`toast ${t}`;el.textContent=msg;
+  document.getElementById('tc').appendChild(el);setTimeout(()=>el.remove(),d);
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+async function loadDash(){
+  const d=await api('/api/stats');
+  document.getElementById('d-l').textContent=d.total_leads??0;
+  document.getElementById('d-s').textContent=d.total_sent??0;
+  document.getElementById('d-t').textContent=d.sent_today??0;
+  document.getElementById('d-o').textContent=(d.open_rate??0)+'%';
+  document.getElementById('nb-l').textContent=d.total_leads||0;
+  document.getElementById('nb-s').textContent=d.total_sent||0;
+  const sp=d.sp_leads||{};
+  const g=document.getElementById('d-spgrid');
+  g.innerHTML=Object.keys(sp).length
+    ?Object.entries(sp).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`
+      <div onclick="go('send',null);setTimeout(()=>{document.getElementById('sp-pick').value='${k}';loadSendList();},200);"
+        style="background:var(--s3);border:1px solid var(--border);border-radius:8px;padding:12px;cursor:pointer;transition:all .15s;"
+        onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:10px;font-weight:700;margin-bottom:4px;">${SPS[k]||k}</div>
+        <div style="font-size:24px;font-weight:700;color:var(--accent);text-shadow:0 0 16px var(--a-glow);">${v}</div>
+        <div style="font-size:10px;color:var(--text3);">unsent</div>
+      </div>`).join('')
+    :'<div style="color:var(--text3);font-size:12px;padding:6px;">No leads yet</div>';
+  const sl=await api('/api/sent');
+  const r=document.getElementById('d-recent');
+  const rec=sl.slice(-5).reverse();
+  r.innerHTML=rec.length?rec.map(s=>`
+    <div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);">
+      <span style="font-family:monospace;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.email}</span>
+      ${pill(s.specialty)}
+      <span class="tag ${s.opened?'t-open':'t-pend'}">${s.opened?'✓ Opened':'Pending'}</span>
+    </div>`).join('')
+    :'<div style="color:var(--text3);font-size:12px;padding:6px;">No emails sent yet</div>';
+}
+
+// ── Leads ──────────────────────────────────────────────────────────────────────
+async function loadLeads(){leads=await api('/api/leads');lp=1;sel=new Set();rl();}
+function getFiltered(){
+  const q=(document.getElementById('ls-q').value||'').toLowerCase();
+  const s=document.getElementById('ls-sp').value||'';
+  return leads.filter(l=>(!q||l.email.toLowerCase().includes(q))&&(!s||l.specialty===s));
+}
+function rl(){
+  const fl=getFiltered(),tot=fl.length,pages=Math.max(1,Math.ceil(tot/PG));
+  if(lp>pages)lp=pages;
+  const sl=fl.slice((lp-1)*PG,lp*PG);
+  document.getElementById('ls-lbl').textContent=`${tot} leads`;
+  document.getElementById('l-pg').textContent=`${lp} / ${pages}`;
+  document.getElementById('l-prev').disabled=lp<=1;
+  document.getElementById('l-next').disabled=lp>=pages;
+  const tb=document.getElementById('l-tb');
+  if(!sl.length){tb.innerHTML=`<tr><td colspan="5"><div class="tbl-empty"><div class="tbl-icon">◉</div>No leads yet — click "Add Emails" to get started</div></td></tr>`;return;}
+  tb.innerHTML=sl.map(l=>`<tr>
+    <td><input type="checkbox" ${sel.has(l.email)?'checked':''} onchange="togL('${l.email}',this.checked)" style="accent-color:var(--accent);"></td>
+    <td class="ecell">${l.email}</td><td>${pill(l.specialty||'unknown')}</td>
+    <td style="font-size:11px;color:var(--text3);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.source||'—'}</td>
+    <td style="font-size:11px;color:var(--text3);">${l.found_at?.slice(0,10)||'—'}</td>
+  </tr>`).join('');
+}
+function togL(e,c){c?sel.add(e):sel.delete(e);}
+function togAll(c){getFiltered().forEach(l=>c?sel.add(l.email):sel.delete(l.email));rl();}
+function selAll(){getFiltered().forEach(l=>sel.add(l.email));document.getElementById('chk-all').checked=true;rl();}
+async function delSel(){
+  if(!sel.size){toast('Nothing selected','er');return;}
+  showM('Delete leads',`<p style="color:var(--text2);">Delete ${sel.size} selected lead${sel.size>1?'s':''}? This cannot be undone.</p>`,[
+    {t:'Cancel',c:'bg',fn:closeM},
+    {t:`Delete ${sel.size}`,c:'bd',fn:async()=>{closeM();await api('/api/leads/delete',{method:'POST',body:JSON.stringify({emails:[...sel]})});toast(`Deleted ${sel.size}`,'ok');sel=new Set();loadLeads();}}
+  ]);
+}
+async function clearAll(){
+  showM('Clear all leads','<p style="color:var(--text2);">Delete every lead in the queue?</p>',[
+    {t:'Cancel',c:'bg',fn:closeM},
+    {t:'Clear All',c:'bd',fn:async()=>{closeM();await api('/api/leads/clear',{method:'POST'});toast('All leads cleared','ok');loadLeads();}}
+  ]);
+}
+function exportCSV(){
+  const rows=[['email','specialty','source','found_at'],...leads.map(l=>[l.email,l.specialty||'',l.source||'',l.found_at||''])];
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href='data:text/csv,'+encodeURIComponent(csv);a.download='stylarx-leads.csv';a.click();
+}
+function showAddModal(){
+  const opts=Object.entries(SPS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  showM('Add Emails Manually',`
+    <div class="fg"><label class="fl">Specialty</label><select class="fsel" id="a-sp">${opts}</select></div>
+    <div class="fg" style="margin-bottom:6px;"><label class="fl">Emails — one per line (or comma-separated)</label>
+    <textarea class="ft" id="a-em" style="min-height:150px;font-family:monospace;font-size:12px;" placeholder="artist@gmail.com&#10;user@domain.com"></textarea></div>
+    <div style="font-size:11px;color:var(--text3);" id="a-hint">Paste as many as you want</div>`,
+    [{t:'Cancel',c:'bg',fn:closeM},{t:'Add to Leads',c:'bp',fn:async()=>{
+      const sp=document.getElementById('a-sp').value;
+      const raw=document.getElementById('a-em').value;
+      const ems=raw.split(/[\n,\s]+/).map(e=>e.trim()).filter(e=>e.includes('@'));
+      if(!ems.length){toast('No valid emails detected','er');return;}
+      closeM();
+      const r=await api('/api/leads/add-specialty',{method:'POST',body:JSON.stringify({emails:ems,specialty:sp})});
+      toast(`Added ${r.added} email${r.added!==1?'s':''} as ${SPS[sp]}`,'ok',4000);
+      loadLeads();
+    }}]
+  );
+  setTimeout(()=>{
+    const ta=document.getElementById('a-em');
+    ta?.addEventListener('input',()=>{
+      const n=ta.value.split(/[\n,\s]+/).filter(e=>e.includes('@')).length;
+      document.getElementById('a-hint').textContent=n?`${n} email${n>1?'s':''} detected`:'Paste as many as you want';
+    });
+  },40);
+}
+
+// ── Send Emails ────────────────────────────────────────────────────────────────
+async function initSend(){
+  const all=await api('/api/leads');
+  const sentList=await api('/api/sent');
+  const sentSet=new Set(sentList.map(s=>s.email.toLowerCase()));
+  const counts={};
+  all.forEach(l=>{ const k=l.specialty||'unknown'; counts[k]=(counts[k]||0)+1; });
+  const total=all.length;
+  const el=document.getElementById('sp-pick');
+  el.innerHTML=`<option value="">— Select specialty (${total} total) —</option>`;
+  if(total) el.innerHTML+=`<option value="__all__">All Unsent (${total})</option>`;
+  Object.entries(counts).sort((a,b)=>b[1]-a[1]).forEach(([k,n])=>{
+    el.innerHTML+=`<option value="${k}">${SPS[k]||k} (${n})</option>`;
+  });
+  window._sl=all; window._ss=sentSet;
+  sendRecip=[];
+  renderSendList();
+}
+async function loadSendList(){
+  const val=document.getElementById('sp-pick').value;
+  if(!val){sendRecip=[];renderSendList();return;}
+  const all=window._sl||await api('/api/leads');
+  const ss=window._ss||(new Set((await api('/api/sent')).map(s=>s.email.toLowerCase())));
+  const pool=val==='__all__'?all:all.filter(l=>(l.specialty||'unknown')===val);
+  sendRecip=pool.map(l=>({email:l.email,specialty:l.specialty||'unknown',source:l.source||'',already:ss.has(l.email.toLowerCase())}));
+  const unsent=sendRecip.filter(r=>!r.already).length;
+  const alr=sendRecip.filter(r=>r.already).length;
+  document.getElementById('sp-hint').textContent=`${unsent} unsent · ${alr} already sent`;
+  renderSendList();
+}
+function renderSendList(){
+  const el=document.getElementById('send-list');
+  const btn=document.getElementById('m-btn');
+  if(!sendRecip.length){
+    el.innerHTML='<div class="tbl-empty"><div class="tbl-icon">✉</div>Select a specialty above</div>';
+    btn.disabled=true; return;
+  }
+  const unsent=sendRecip.filter(r=>!r.already);
+  const hd=`<div class="elist-hd"><span class="cnt">${unsent.length} unsent · ${sendRecip.length-unsent.length} already sent</span><button class="btn bg bsm" onclick="selEM(true)">All</button><button class="btn bg bsm" onclick="selEM(false)">None</button></div>`;
+  const rows=sendRecip.map((r,i)=>`<div class="erow">
+    ${r.already
+      ?`<span style="width:14px;text-align:center;font-size:11px;flex-shrink:0;color:var(--text3);">✓</span>`
+      :`<input type="checkbox" checked data-i="${i}" onchange="syncSendBtn()">`}
+    <span class="addr">${r.email}</span>
+    ${r.already?`<span class="warn">Already sent</span>`:`<span class="src">${r.source}</span>`}
+  </div>`).join('');
+  el.innerHTML=hd+rows;
+  btn.disabled=unsent.length===0;
+}
+function selEM(v){document.querySelectorAll('#send-list input[type=checkbox]').forEach(c=>c.checked=v);syncSendBtn();}
+function syncSendBtn(){
+  const n=document.querySelectorAll('#send-list input[type=checkbox]:checked').length;
+  document.getElementById('m-btn').disabled=n===0;
+}
+async function doSend(){
+  const checks=[...document.querySelectorAll('#send-list input[type=checkbox]:checked')];
+  if(!checks.length){toast('Nothing selected','er');return;}
+  const toSend=checks.map(c=>sendRecip[+c.dataset.i]).filter(r=>!r.already);
+  if(!toSend.length){toast('All selected already sent','er');return;}
+  const subj=document.getElementById('m-subj').value.trim();
+  const body=document.getElementById('m-body').value.trim();
+  const btn=document.getElementById('m-btn');
+  btn.disabled=true; btn.textContent='Sending…';
+  const log=document.getElementById('m-log'); log.innerHTML='';
+  ms=me=mk=0; ['m-sc','m-ec','m-kc'].forEach(id=>document.getElementById(id).textContent='0');
+  try{
+    const resp=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({emails:toSend,subject:subj,body,followup:false})});
+    await streamSSE(resp,log,
+      n=>{ms=n;document.getElementById('m-sc').textContent=n;},
+      n=>{me=n;document.getElementById('m-ec').textContent=n;},
+      n=>{mk=n;document.getElementById('m-kc').textContent=n;},
+      w=>{document.getElementById('m-wt').textContent=w?`⏱ ${w}s cooldown`:'';},
+      async()=>{
+        toast(`✓ Sent ${ms} email${ms!==1?'s':''}`,'ok',5000);
+        btn.disabled=false; btn.textContent='✉ Send to Selected';
+        document.getElementById('m-wt').textContent='';
+        await initSend(); loadSendList();
+      }
+    );
+  }catch(e){toast('Error: '+e.message,'er');btn.disabled=false;btn.textContent='✉ Send to Selected';}
+}
+
+// ── Follow-Up ──────────────────────────────────────────────────────────────────
+async function initFu(){
+  const data=await api('/api/followup/ready');
+  const total=data.total||0;
+  document.getElementById('nb-fu').textContent=total||0;
+  const el=document.getElementById('fu-pick');
+  el.innerHTML=`<option value="">— Select specialty (${total} ready) —</option>`;
+  if(total) el.innerHTML+=`<option value="__all__">All Ready (${total})</option>`;
+  Object.entries(data.sp_counts||{}).sort((a,b)=>b[1]-a[1]).forEach(([k,n])=>{
+    el.innerHTML+=`<option value="${k}">${SPS[k]||k} (${n})</option>`;
+  });
+  window._fur=data.ready||[];
+  fuRecip=[]; renderFuList();
+}
+function loadFuList(){
+  const val=document.getElementById('fu-pick').value;
+  if(!val){fuRecip=[];renderFuList();return;}
+  const all=window._fur||[];
+  fuRecip=val==='__all__'?all.map(s=>({email:s.email,specialty:s.specialty||'unknown'})):all.filter(s=>(s.specialty||'unknown')===val).map(s=>({email:s.email,specialty:s.specialty||'unknown'}));
+  document.getElementById('fu-hint').textContent=`${fuRecip.length} contact${fuRecip.length!==1?'s':''} eligible for follow-up`;
+  renderFuList();
+}
+function renderFuList(){
+  const el=document.getElementById('fu-list');
+  const btn=document.getElementById('fu-btn');
+  if(!fuRecip.length){el.innerHTML='<div class="tbl-empty"><div class="tbl-icon">↩</div>Select a specialty above</div>';btn.disabled=true;return;}
+  const hd=`<div class="elist-hd"><span class="cnt">${fuRecip.length} contacts</span><button class="btn bg bsm" onclick="selFU(true)">All</button><button class="btn bg bsm" onclick="selFU(false)">None</button></div>`;
+  const rows=fuRecip.map((r,i)=>`<div class="erow">
+    <input type="checkbox" checked data-fi="${i}" onchange="syncFuBtn()">
+    <span class="addr">${r.email}</span>
+    ${pill(r.specialty)}
+  </div>`).join('');
+  el.innerHTML=hd+rows;
+  btn.disabled=false;
+}
+function selFU(v){document.querySelectorAll('#fu-list input[type=checkbox]').forEach(c=>c.checked=v);syncFuBtn();}
+function syncFuBtn(){document.getElementById('fu-btn').disabled=!document.querySelectorAll('#fu-list input[type=checkbox]:checked').length;}
+async function doFu(){
+  const checks=[...document.querySelectorAll('#fu-list input[type=checkbox]:checked')];
+  if(!checks.length){toast('Nothing selected','er');return;}
+  const toSend=checks.map(c=>fuRecip[+c.dataset.fi]);
+  const subj=document.getElementById('fu-subj').value.trim();
+  const body=document.getElementById('fu-body').value.trim();
+  const btn=document.getElementById('fu-btn');
+  btn.disabled=true; btn.textContent='Sending…';
+  const log=document.getElementById('fu-log'); log.innerHTML='';
+  fs=fe=fk=0; ['fu-sc','fu-ec','fu-kc'].forEach(id=>document.getElementById(id).textContent='0');
+  try{
+    const resp=await fetch('/api/send',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({emails:toSend,subject:subj,body,followup:true})});
+    await streamSSE(resp,log,
+      n=>{fs=n;document.getElementById('fu-sc').textContent=n;},
+      n=>{fe=n;document.getElementById('fu-ec').textContent=n;},
+      n=>{fk=n;document.getElementById('fu-kc').textContent=n;},
+      w=>{document.getElementById('fu-wt').textContent=w?`⏱ ${w}s cooldown`:'';},
+      async()=>{
+        toast(`✓ Sent ${fs} follow-up${fs!==1?'s':''}`,'ok',5000);
+        btn.disabled=false; btn.textContent='↩ Send Follow-Ups';
+        document.getElementById('fu-wt').textContent='';
+        await initFu(); loadFuList();
+      }
+    );
+  }catch(e){toast('Error: '+e.message,'er');btn.disabled=false;btn.textContent='↩ Send Follow-Ups';}
+}
+
+// ── SSE stream ─────────────────────────────────────────────────────────────────
+async function streamSSE(resp,log,onS,onE,onK,onW,onDone){
+  const rdr=resp.body.getReader(),dec=new TextDecoder(); let buf='';
+  let sc=0,ec=0,kc=0;
+  while(true){
+    const{done,value}=await rdr.read(); if(done)break;
+    buf+=dec.decode(value);
+    const parts=buf.split('\n\n'); buf=parts.pop();
+    for(const part of parts){
+      const line=part.replace(/^data: /,'').trim(); if(!line)continue;
+      try{
+        const d=JSON.parse(line);
+        if(d.sent){sc++;onS(sc);addLog(log,'ok',d.email,`✓ Sent [${SPS[d.specialty]||d.specialty}]`);}
+        else if(d.wait){onW(d.wait);}
+        else if(d.error){ec++;onE(ec);addLog(log,'er',d.email,`✕ ${(d.msg||'').slice(0,60)}`);}
+        else if(d.skip){kc++;onK(kc);addLog(log,'sk',d.email,'Already sent — skipped');}
+        else if(d.done){onW(0);await onDone();addLog(log,'ok','—',`Done — ${sc} sent, ${ec} errors, ${kc} skipped`);}
+      }catch{}
+    }
+  }
+}
+function addLog(c,type,email,msg){
+  const d=document.createElement('div');d.className=`sl ${type}`;
+  d.textContent=`[${ts()}] ${email} — ${msg}`;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+
+// ── Sent Log ───────────────────────────────────────────────────────────────────
+async function loadLog(){sent=await api('/api/sent');sp=1;rs();}
+function rs(){
+  const q=(document.getElementById('sl-q').value||'').toLowerCase();
+  const s=document.getElementById('sl-sp').value||'';
+  const fl=sent.filter(x=>(!q||x.email.toLowerCase().includes(q))&&(!s||x.specialty===s));
+  const tot=fl.length,pages=Math.max(1,Math.ceil(tot/PG));
+  if(sp>pages)sp=pages;
+  const sl=fl.slice().reverse().slice((sp-1)*PG,sp*PG);
+  document.getElementById('sl-lbl').textContent=`${tot} sent`;
+  document.getElementById('s-pg').textContent=`${sp} / ${pages}`;
+  document.getElementById('s-prev').disabled=sp<=1;
+  document.getElementById('s-next').disabled=sp>=pages;
+  const tb=document.getElementById('s-tb');
+  if(!sl.length){tb.innerHTML=`<tr><td colspan="6"><div class="tbl-empty"><div class="tbl-icon">✉</div>No emails sent yet</div></td></tr>`;return;}
+  tb.innerHTML=sl.map(s=>`<tr>
+    <td class="ecell">${s.email}</td>
+    <td style="font-size:11px;color:var(--text2);max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.subject||'—'}</td>
+    <td>${pill(s.specialty||'unknown')}</td>
+    <td><span class="tag ${s.followup?'t-fu':'t-pend'}">${s.followup?'Follow-up':'Initial'}</span></td>
+    <td><span class="tag ${s.opened?'t-open':'t-pend'}">${s.opened?'✓ Opened':'Pending'}</span></td>
+    <td style="font-size:11px;color:var(--text3);">${s.sent_at?.slice(0,10)||'—'}</td>
+  </tr>`).join('');
+}
+
+// ── Templates ──────────────────────────────────────────────────────────────────
+async function loadTpl(){
+  const wrap=document.getElementById('tpl-wrap');
+  wrap.innerHTML='<div style="color:var(--text3);padding:30px 0;">Loading…</div>';
+  const data=await api('/api/templates/all');
+  wrap.innerHTML='';
+  data.forEach(sp=>{
+    const div=document.createElement('div');div.className='tmpl-card';
+    const tid=`tmpl-${sp.specialty}`;
+    div.innerHTML=`
+      <div class="tmpl-hd" id="hd-${sp.specialty}" onclick="togTpl('${sp.specialty}')">
+        <div style="display:flex;align-items:center;gap:10px;">${pill(sp.specialty)}<strong style="font-size:14px;">${sp.label}</strong></div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:var(--text3);">
+          ${sp.initial.length} initial · ${sp.followup.length} follow-up
+          <span id="arr-${sp.specialty}">▼</span>
+        </div>
+      </div>
+      <div class="tmpl-body" id="${tid}">
+        <div class="tmpl-tabs">
+          <div class="tt on" onclick="swTpl('${sp.specialty}','i',this)">Initial (${sp.initial.length})</div>
+          <div class="tt" onclick="swTpl('${sp.specialty}','f',this)">Follow-Up (${sp.followup.length})</div>
+        </div>
+        <div class="tvars on" id="ti-${sp.specialty}">
+          ${sp.initial.map((t,i)=>varHTML(sp.specialty,'i',i,t)).join('')}
+        </div>
+        <div class="tvars" id="tf-${sp.specialty}">
+          ${sp.followup.map((t,i)=>varHTML(sp.specialty,'f',i,t)).join('')}
+        </div>
+      </div>`;
+    wrap.appendChild(div);
+  });
+}
+function varHTML(sp,type,i,t){
+  const eid=`v-${sp}-${type}-${i}`;
+  const bodyEsc=(t.body||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return `<div class="tvar">
+    <div class="tvar-lbl">
+      <span>Variation ${i+1}</span>
+      <button class="btn bg bsm" onclick="cpTpl('${eid}')">Copy</button>
+    </div>
+    <div class="tsubj" id="${eid}-s">${t.subject||''}</div>
+    <div class="tbody" id="${eid}-b">${bodyEsc}</div>
+  </div>`;
+}
+function togTpl(sp){
+  const body=document.getElementById(`tmpl-${sp}`);
+  const hd=document.getElementById(`hd-${sp}`);
+  const arr=document.getElementById(`arr-${sp}`);
+  const open=body.style.display!=='block';
+  body.style.display=open?'block':'none';
+  hd.classList.toggle('open',open);
+  if(arr)arr.textContent=open?'▲':'▼';
+}
+function swTpl(sp,type,btn){
+  document.querySelectorAll(`#tmpl-${sp} .tt`).forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById(`ti-${sp}`).classList.toggle('on',type==='i');
+  document.getElementById(`tf-${sp}`).classList.toggle('on',type==='f');
+}
+function cpTpl(eid){
+  const s=document.getElementById(`${eid}-s`)?.textContent||'';
+  const b=document.getElementById(`${eid}-b`)?.textContent||'';
+  navigator.clipboard.writeText(`Subject: ${s}\n\n${b}`).then(()=>toast('Copied','ok'));
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────────
+async function loadCfg(){
+  const c=await api('/api/config');
+  document.getElementById('c-host').value=c.smtp_host||'smtp.gmail.com';
+  document.getElementById('c-port').value=c.smtp_port||'587';
+  document.getElementById('c-user').value=c.smtp_user||'';
+  document.getElementById('c-name').value=c.from_name||'Stylarx';
+  document.getElementById('c-url').value=c.tracking_url||'';
+}
+async function saveCfg(){
+  const d={smtp_host:document.getElementById('c-host').value,smtp_port:document.getElementById('c-port').value,
+    smtp_user:document.getElementById('c-user').value,from_name:document.getElementById('c-name').value,
+    tracking_url:document.getElementById('c-url').value};
+  const p=document.getElementById('c-pass').value;
+  if(p)d.smtp_pass=p;
+  await api('/api/config',{method:'POST',body:JSON.stringify(d)});
+  toast('Settings saved','ok');
+  document.getElementById('c-pass').value='';
+}
+async function chgPw(){
+  const c=document.getElementById('pw-c').value,n=document.getElementById('pw-n').value;
+  if(!c||!n){toast('Fill both fields','er');return;}
+  const r=await api('/api/change-password',{method:'POST',body:JSON.stringify({current:c,new:n})});
+  r.ok?toast('Password updated','ok'):toast(r.error||'Failed','er');
+  if(r.ok){document.getElementById('pw-c').value='';document.getElementById('pw-n').value='';}
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────────
+function showM(title,html,acts){
+  document.getElementById('m-ttl').textContent=title;
+  document.getElementById('m-cnt').innerHTML=html;
+  const a=document.getElementById('m-acts');a.innerHTML='';
+  acts.forEach(({t,c,fn})=>{const b=document.createElement('button');b.className=`btn ${c||'bg'}`;b.textContent=t;b.onclick=fn;a.appendChild(b);});
+  document.getElementById('modal').style.display='flex';
+}
+function closeM(){document.getElementById('modal').style.display='none';}
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
+loadDash();
 </script>
 </body>
 </html>
