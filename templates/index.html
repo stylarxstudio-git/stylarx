@@ -182,6 +182,7 @@ tr:hover td{background:rgba(255,255,255,.012);}
     <div class="ns">Library</div>
     <div class="ni" onclick="go('tpl',this)"><span class="ico">≡</span>Templates</div>
     <div class="ns">System</div>
+    <div class="ni" onclick="go('cfg',this)"><span class="ico">⚙</span>Settings</div>
     <div class="ni" onclick="location.href='/logout'"><span class="ico">⏏</span>Sign Out</div>
   </nav>
 </div>
@@ -332,8 +333,18 @@ tr:hover td{background:rgba(255,255,255,.012);}
           <div class="tbl-empty">Select a category above to load recipients</div>
         </div>
         <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <button class="btn bp" id="c-send-btn" onclick="doSendAll()" disabled>✉ Open Gmail for Selected</button>
+          <button class="btn bp" id="c-send-btn" onclick="doSendAll()" disabled>✉ Send to Selected</button>
           <span style="font-size:10px;color:var(--text3);" id="c-sel-hint"></span>
+        </div>
+        <!-- Live send log -->
+        <div id="c-log-wrap" style="display:none;margin-top:14px;">
+          <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:7px;">Live Feed</div>
+          <div id="c-log" style="background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:10px 12px;font-family:'Space Mono',monospace;font-size:11px;min-height:100px;max-height:220px;overflow-y:auto;line-height:1.7;"></div>
+          <div style="display:flex;gap:16px;margin-top:8px;font-size:11px;">
+            <span>Sent: <strong id="c-sc" style="color:var(--green);">0</strong></span>
+            <span>Errors: <strong id="c-ec" style="color:var(--red);">0</strong></span>
+            <span id="c-wt" style="margin-left:auto;color:var(--amber);font-size:10px;"></span>
+          </div>
         </div>
       </div>
 
@@ -355,6 +366,22 @@ tr:hover td{background:rgba(255,255,255,.012);}
         </select>
       </div>
       <div id="tpl-list"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="panel" id="p-cfg">
+    <div class="sec-head">
+      <div><div class="sec-title">Settings</div><div class="sec-sub">Gmail credentials for sending</div></div>
+    </div>
+    <div style="max-width:460px;">
+      <div class="card">
+        <div class="ctitle">Gmail SMTP</div>
+        <div class="fg"><label class="fl">Gmail Address</label><input class="fi" id="cfg-user" placeholder="you@gmail.com"></div>
+        <div class="fg"><label class="fl">App Password <span style="text-transform:none;font-weight:400;">(Google Account → Security → App Passwords)</span></label><input type="password" class="fi" id="cfg-pass" placeholder="16-character app password"></div>
+        <div class="fg"><label class="fl">From Name</label><input class="fi" id="cfg-name" placeholder="Stylarx"></div>
+        <button class="btn bp bsm" onclick="saveCfg()">Save</button>
+      </div>
     </div>
   </div>
 
@@ -394,6 +421,7 @@ const PANELS = {
   import:  ['Import', 'Bulk-add emails to a category'],
   compose: ['Compose & Send', 'Write and send via Gmail'],
   tpl:     ['Templates', 'Saved email templates'],
+  cfg:     ['Settings', 'Gmail credentials'],
 };
 function go(id, el) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
@@ -407,6 +435,7 @@ function go(id, el) {
   if (id === 'leads')   { lp = 1; sel = new Set(); renderLeads(); }
   if (id === 'compose') initCompose();
   if (id === 'tpl')     renderTemplates();
+  if (id === 'cfg')     loadCfg();
 }
 
 // ── API ────────────────────────────────────────────────────────────────────────
@@ -715,20 +744,84 @@ async function saveTplFromCompose() {
 function doSendAll() {
   const toSend = composeRecips.filter(r => r.checked);
   if (!toSend.length) { toast('Nothing selected', 'er'); return; }
-  const subj = encodeURIComponent(document.getElementById('c-subj').value.trim());
+  const subj = document.getElementById('c-subj').value.trim();
   const body = document.getElementById('c-body').value.trim();
+  if (!subj) { toast('Subject is empty', 'er'); return; }
+  if (!body) { toast('Body is empty', 'er'); return; }
 
-  let opened = 0;
-  toSend.forEach((r, idx) => {
-    const name = r.email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    const personalBody = encodeURIComponent(body.replace(/\{name\}/g, name));
-    setTimeout(() => {
-      window.open(`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(r.email)}&su=${subj}&body=${personalBody}`, '_blank');
-      opened++;
-    }, idx * 600); // stagger to avoid popup blocking
+  const btn  = document.getElementById('c-send-btn');
+  const log  = document.getElementById('c-log');
+  const wrap = document.getElementById('c-log-wrap');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  log.innerHTML = ''; wrap.style.display = 'block';
+  let sc = 0, ec = 0;
+  document.getElementById('c-sc').textContent = '0';
+  document.getElementById('c-ec').textContent = '0';
+  document.getElementById('c-wt').textContent = '';
+
+  const ts = () => new Date().toLocaleTimeString('en', {hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  function addLog(type, msg) {
+    const d = document.createElement('div');
+    d.style.color = type==='ok' ? 'var(--green)' : type==='er' ? 'var(--red)' : type==='wa' ? 'var(--amber)' : 'var(--text3)';
+    d.textContent = `[${ts()}] ${msg}`;
+    log.appendChild(d); log.scrollTop = log.scrollHeight;
+  }
+
+  fetch('/api/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipients: toSend, subject: subj, body })
+  }).then(async resp => {
+    const rdr = resp.body.getReader(), dec = new TextDecoder(); let buf = '';
+    while (true) {
+      const { done, value } = await rdr.read(); if (done) break;
+      buf += dec.decode(value);
+      const parts = buf.split('\n\n'); buf = parts.pop();
+      for (const part of parts) {
+        const line = part.replace(/^data: /, '').trim(); if (!line) continue;
+        try {
+          const d = JSON.parse(line);
+          if (d.sent) {
+            sc++; document.getElementById('c-sc').textContent = sc;
+            addLog('ok', `✓ ${d.sent}`);
+            // update local lead status
+            const lead = leads.find(l => l.email === d.sent);
+            if (lead) lead.status = 'sent';
+          } else if (d.wait) {
+            document.getElementById('c-wt').textContent = `⏱ ${d.wait}s until next`;
+          } else if (d.error) {
+            ec++; document.getElementById('c-ec').textContent = ec;
+            const isConfig = d.error === 'config';
+            addLog('er', isConfig ? `✕ ${d.msg}` : `✕ ${d.error} — ${d.msg}`);
+            if (isConfig) break;
+          } else if (d.done) {
+            document.getElementById('c-wt').textContent = '';
+            addLog('', `— Done. ${sc} sent, ${ec} error${ec!==1?'s':''}`);
+            btn.disabled = false; btn.textContent = '✉ Send to Selected';
+            toast(`✓ Sent ${sc} email${sc!==1?'s':''}`, 'ok', 4000);
+          }
+        } catch {}
+      }
+    }
+  }).catch(e => {
+    addLog('er', '✕ ' + e.message);
+    btn.disabled = false; btn.textContent = '✉ Send to Selected';
   });
+}
 
-  toast(`Opening ${toSend.length} Gmail compose windows…`, 'in', 4000);
+// ── Settings ───────────────────────────────────────────────────────────────────
+async function loadCfg() {
+  const c = await api('/api/config');
+  document.getElementById('cfg-user').value = c.smtp_user || '';
+  document.getElementById('cfg-name').value = c.from_name || 'Stylarx';
+}
+async function saveCfg() {
+  const d = { smtp_user: document.getElementById('cfg-user').value, from_name: document.getElementById('cfg-name').value };
+  const p = document.getElementById('cfg-pass').value;
+  if (p) d.smtp_pass = p;
+  await api('/api/config', { method: 'POST', body: JSON.stringify(d) });
+  toast('Saved', 'ok');
+  document.getElementById('cfg-pass').value = '';
 }
 
 // ── Templates page ─────────────────────────────────────────────────────────────
