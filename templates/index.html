@@ -798,10 +798,10 @@ async function streamSSE(resp,log,onS,onE,onK,onW,onDone){
       const line=part.replace(/^data: /,'').trim(); if(!line)continue;
       try{
         const d=JSON.parse(line);
-        if(d.sent){sc++;onS(sc);addLog(log,'ok',d.email,`✓ Sent [${SPS[d.specialty]||d.specialty}]`);}
+        if(d.sent){sc++;onS(sc);addLog(log,'ok',d.sent,`✓ Sent [${SPS[d.specialty]||d.specialty}]`);}
         else if(d.wait){onW(d.wait);}
-        else if(d.error){ec++;onE(ec);addLog(log,'er',d.email,`✕ ${(d.msg||'').slice(0,60)}`);}
-        else if(d.skip){kc++;onK(kc);addLog(log,'sk',d.email,'Already sent — skipped');}
+        else if(d.error){ec++;onE(ec);addLog(log,'er',d.error,`✕ ${(d.msg||'').slice(0,60)}`);}
+        else if(d.skip){kc++;onK(kc);addLog(log,'sk',d.skip,'Already sent — skipped');}
         else if(d.done){onW(0);await onDone();addLog(log,'ok','—',`Done — ${sc} sent, ${ec} errors, ${kc} skipped`);}
       }catch{}
     }
