@@ -1,6 +1,8 @@
-import os, json, re, secrets
+import os, json, re, secrets, smtplib, uuid, time, random
 from datetime import datetime
-from flask import Flask, request, jsonify, session, redirect, render_template
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from flask import Flask, request, jsonify, session, redirect, render_template, Response, stream_with_context
 from functools import wraps
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -212,5 +214,110 @@ def api_delete_template():
 def api_categories():
     return jsonify(CATEGORIES)
 
-if __name__ == '__main__':
+CONFIG_FILE = os.path.join(DATA_DIR, 'config.json')
+
+def load_config():  return load_json(CONFIG_FILE, {})
+def save_config(d): save_json(CONFIG_FILE, d)
+
+# ── Config API ────────────────────────────────────────────────────────────────
+@app.route('/api/config', methods=['GET'])
+@require_auth
+def api_get_config():
+    c = load_config()
+    return jsonify({k: v for k, v in c.items() if k != 'smtp_pass'})
+
+@app.route('/api/config', methods=['POST'])
+@require_auth
+def api_save_config():
+    c = load_config()
+    c.update(request.json or {})
+    save_config(c)
+    return jsonify({'ok': True})
+
+# ── Send API ──────────────────────────────────────────────────────────────────
+def send_emails_stream(recipients, subject, body):
+    cfg        = load_config()
+    smtp_user  = cfg.get('smtp_user', '')
+    smtp_pass  = cfg.get('smtp_pass', '')
+    from_name  = cfg.get('from_name', 'Stylarx')
+
+    if not smtp_user or not smtp_pass:
+        yield f"data: {json.dumps({'error': 'config', 'msg': 'Gmail credentials not set — go to Settings'})}\n\n"
+        yield f"data: {json.dumps({'done': True})}\n\n"
+        return
+
+    leads     = load_leads()
+    leads_map = {l['id']: l for l in leads}
+
+    for item in recipients:
+        lid   = item.get('id')
+        email = item.get('email', '').lower()
+        try:
+            name = email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+            body_personal = body.replace('{name}', name)
+
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From']    = f'{from_name} <{smtp_user}>'
+            msg['To']      = email
+            msg.attach(MIMEText(body_personal, 'plain'))
+            msg.attach(MIMEText(body_personal.replace('\n', '<br>'), 'html'))
+
+            # Try SSL on 465 first, fall back to STARTTLS on 587
+            sent = False
+            last_err = ''
+            for attempt in [('SSL', 465), ('TLS', 587)]:
+                try:
+                    mode, port = attempt
+                    if mode == 'SSL':
+                        with smtplib.SMTP_SSL('smtp.gmail.com', port, timeout=20) as s:
+                            s.login(smtp_user, smtp_pass)
+                            s.send_message(msg)
+                    else:
+                        with smtplib.SMTP('smtp.gmail.com', port, timeout=20) as s:
+                            s.starttls()
+                            s.login(smtp_user, smtp_pass)
+                            s.send_message(msg)
+                    sent = True
+                    break
+                except OSError as e:
+                    last_err = str(e)
+                    continue
+
+            if not sent:
+                raise Exception(last_err)
+
+            # Mark as sent in leads
+            if lid and lid in leads_map:
+                leads_map[lid]['status']  = 'sent'
+                leads_map[lid]['sent_at'] = datetime.now().isoformat()
+
+            save_leads(list(leads_map.values()))
+            yield f"data: {json.dumps({'sent': email})}\n\n"
+
+            # 90-120s delay between sends
+            delay = random.randint(90, 120)
+            for i in range(delay):
+                yield f"data: {json.dumps({'wait': delay - i})}\n\n"
+                time.sleep(1)
+
+        except Exception as e:
+            yield f"data: {json.dumps({'error': email, 'msg': str(e)[:120]})}\n\n"
+
+    yield f"data: {json.dumps({'done': True})}\n\n"
+
+@app.route('/api/send', methods=['POST'])
+@require_auth
+def api_send():
+    d          = request.json or {}
+    recipients = d.get('recipients', [])
+    subject    = d.get('subject', '')
+    body       = d.get('body', '')
+    return Response(
+        stream_with_context(send_emails_stream(recipients, subject, body)),
+        mimetype='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    )
+
+
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=False)
