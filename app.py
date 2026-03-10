@@ -509,8 +509,8 @@ def send_stream(recipients, subj_override, body_override, is_followup, tmpl_inde
             msg["Subject"] = subj
             msg["From"] = f"{from_name} <{smtp_user}>"
             msg["To"] = email
-            with smtplib.SMTP(smtp_host,smtp_port) as s:
-                s.starttls(); s.login(smtp_user,smtp_pass); s.send_message(msg)
+            with smtplib.SMTP_SSL(smtp_host, smtp_port) as s:
+                s.login(smtp_user, smtp_pass); s.send_message(msg)
             entry = {"email":email,"subject":subj,"sent_at":datetime.now().isoformat(),"token":token,"opened":False,"specialty":specialty,"followup":is_followup}
             sent_list.append(entry); sent_emails.add(email); save_sent(sent_list)
             leads = [l for l in load_leads() if l["email"].lower() != email]; save_leads(leads)
