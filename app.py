@@ -1,4 +1,4 @@
-import os, json, re, secrets, smtplib, uuid, time, random
+import os, json, re, secrets, smtplib, uuid, time
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -236,75 +236,66 @@ def api_save_config():
 
 # ── Send API ──────────────────────────────────────────────────────────────────
 def send_emails_stream(recipients, subject, body):
-    cfg        = load_config()
-    smtp_user  = cfg.get('smtp_user', '')
-    smtp_pass  = cfg.get('smtp_pass', '')
-    from_name  = cfg.get('from_name', 'Stylarx')
+    cfg       = load_config()
+    smtp_user = cfg.get('smtp_user', '')
+    smtp_pass = cfg.get('smtp_pass', '').replace(' ', '')
+    from_name = cfg.get('from_name', 'Stylarx')
 
     if not smtp_user or not smtp_pass:
-        yield f"data: {json.dumps({'error': 'config', 'msg': 'Gmail credentials not set — go to Settings'})}\n\n"
-        yield f"data: {json.dumps({'done': True})}\n\n"
+        yield "data: " + json.dumps({'error': 'config', 'msg': 'Gmail credentials not set — go to Settings'}) + "\n\n"
+        yield "data: " + json.dumps({'done': True}) + "\n\n"
         return
 
     leads     = load_leads()
     leads_map = {l['id']: l for l in leads}
 
+    # Connect ONCE before the loop — same as the working version
+    try:
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(smtp_user, smtp_pass)
+    except Exception as e:
+        yield "data: " + json.dumps({'error': 'login', 'msg': f'Gmail login failed — {str(e)}'}) + "\n\n"
+        yield "data: " + json.dumps({'done': True}) + "\n\n"
+        return
+
+    success = fail = skip = 0
     for item in recipients:
         lid   = item.get('id')
-        email = item.get('email', '').lower()
-        try:
-            name = email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
-            body_personal = body.replace('{name}', name)
+        email = item.get('email', '').lower().strip()
+        if not email or '@' not in email:
+            continue
 
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
+        name          = email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+        body_personal = body.replace('{name}', name)
+
+        try:
+            msg = MIMEMultipart()
             msg['From']    = f'{from_name} <{smtp_user}>'
             msg['To']      = email
+            msg['Subject'] = subject
             msg.attach(MIMEText(body_personal, 'plain'))
-            msg.attach(MIMEText(body_personal.replace('\n', '<br>'), 'html'))
+            server.send_message(msg)
 
-            # Try SSL on 465 first, fall back to STARTTLS on 587
-            sent = False
-            last_err = ''
-            for attempt in [('SSL', 465), ('TLS', 587)]:
-                try:
-                    mode, port = attempt
-                    if mode == 'SSL':
-                        with smtplib.SMTP_SSL('smtp.gmail.com', port, timeout=20) as s:
-                            s.login(smtp_user, smtp_pass)
-                            s.send_message(msg)
-                    else:
-                        with smtplib.SMTP('smtp.gmail.com', port, timeout=20) as s:
-                            s.starttls()
-                            s.login(smtp_user, smtp_pass)
-                            s.send_message(msg)
-                    sent = True
-                    break
-                except OSError as e:
-                    last_err = str(e)
-                    continue
-
-            if not sent:
-                raise Exception(last_err)
-
-            # Mark as sent in leads
             if lid and lid in leads_map:
                 leads_map[lid]['status']  = 'sent'
                 leads_map[lid]['sent_at'] = datetime.now().isoformat()
-
             save_leads(list(leads_map.values()))
-            yield f"data: {json.dumps({'sent': email})}\n\n"
 
-            # 90-120s delay between sends
-            delay = random.randint(90, 120)
-            for i in range(delay):
-                yield f"data: {json.dumps({'wait': delay - i})}\n\n"
-                time.sleep(1)
-
+            success += 1
+            yield "data: " + json.dumps({'sent': email}) + "\n\n"
         except Exception as e:
-            yield f"data: {json.dumps({'error': email, 'msg': str(e)[:120]})}\n\n"
+            fail += 1
+            yield "data: " + json.dumps({'error': email, 'msg': str(e)[:120]}) + "\n\n"
 
-    yield f"data: {json.dumps({'done': True})}\n\n"
+        time.sleep(2)
+
+    try:
+        server.quit()
+    except:
+        pass
+
+    yield "data: " + json.dumps({'done': True, 'success': success, 'fail': fail}) + "\n\n"
+
 
 @app.route('/api/send', methods=['POST'])
 @require_auth
