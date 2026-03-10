@@ -1,5 +1,7 @@
-import os, json, re, time, random, threading, uuid, secrets
+import os, json, re, time, random, smtplib, threading, uuid, secrets
 from datetime import datetime, date
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from flask import Flask, request, jsonify, session, redirect, render_template, Response, stream_with_context
 from functools import wraps
 import urllib.request, urllib.parse
@@ -474,84 +476,54 @@ def api_save_config():
 def api_sent():
     return jsonify(load_sent())
 
-def sendgrid_send(api_key, from_email, from_name, to_email, subject, text_body, html_body):
-    payload = json.dumps({
-        "personalizations": [{"to": [{"email": to_email}]}],
-        "from": {"email": from_email, "name": from_name},
-        "subject": subject,
-        "content": [
-            {"type": "text/plain", "value": text_body},
-            {"type": "text/html",  "value": html_body},
-        ]
-    }).encode("utf-8")
-    req = urllib.request.Request(
-        "https://api.sendgrid.com/v3/mail/send",
-        data=payload,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        method="POST"
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=20) as r:
-            return r.status  # 202 = accepted
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="ignore")
-        raise Exception(f"SendGrid {e.code}: {body[:200]}")
-
 def send_stream(recipients, subj_override, body_override, is_followup, tmpl_index=None):
     cfg = load_config()
-    api_key      = cfg.get("sendgrid_api_key", "")
-    from_email   = cfg.get("smtp_user", "")          # reuse smtp_user field for from address
-    from_name    = cfg.get("from_name", "Stylarx")
-    tracking_url = cfg.get("tracking_url", "")
-
-    if not api_key:
-        yield f"data: {json.dumps({'error':'config','msg':'SendGrid API key not set — go to Settings'})}\n\n"
-        yield f"data: {json.dumps({'done':True})}\n\n"
-        return
-    if not from_email:
-        yield f"data: {json.dumps({'error':'config','msg':'From email not set — go to Settings'})}\n\n"
-        yield f"data: {json.dumps({'done':True})}\n\n"
-        return
-
-    sent_list   = load_sent()
+    smtp_host = cfg.get("smtp_host","smtp.gmail.com")
+    smtp_port = int(cfg.get("smtp_port",587))
+    smtp_user = cfg.get("smtp_user","")
+    smtp_pass = cfg.get("smtp_pass","")
+    from_name = cfg.get("from_name","Stylarx")
+    tracking_url = cfg.get("tracking_url","")
+    sent_list = load_sent()
     sent_emails = {s["email"].lower() for s in sent_list}
-
     for item in recipients:
-        email     = item["email"].lower()
-        specialty = item.get("specialty", "unknown")
+        email = item["email"].lower()
+        specialty = item.get("specialty","unknown")
         if email in sent_emails:
             yield f"data: {json.dumps({'skip':email})}\n\n"; continue
         try:
             if subj_override and body_override:
-                subj, body = subj_override, body_override
+                subj,body = subj_override,body_override
             else:
-                subj, body = get_template(specialty, is_followup, tmpl_index)
-            name  = email.split("@")[0].replace(".", " ").replace("_", " ").title()
-            body  = body.replace("{name}", name)
-            token = str(uuid.uuid4()).replace("-", "")
-
-            html_body = body.replace("\n", "<br>")
+                subj,body = get_template(specialty, is_followup, tmpl_index)
+            name = email.split("@")[0].replace("."," ").replace("_"," ").title()
+            body = body.replace("{name}", name)
+            token = str(uuid.uuid4()).replace("-","")
             if tracking_url:
                 pixel = f'<img src="{tracking_url.rstrip("/")}/track/{token}" width="1" height="1" style="display:none">'
-                html_body += pixel
-
-            sendgrid_send(api_key, from_email, from_name, email, subj, body, html_body)
-
-            entry = {"email":email,"subject":subj,"sent_at":datetime.now().isoformat(),
-                     "token":token,"opened":False,"specialty":specialty,"followup":is_followup}
+                msg = MIMEMultipart("alternative")
+                msg.attach(MIMEText(body,"plain"))
+                msg.attach(MIMEText(body.replace("\n","<br>")+pixel,"html"))
+            else:
+                msg = MIMEMultipart(); msg.attach(MIMEText(body,"plain"))
+            msg["Subject"] = subj
+            msg["From"] = f"{from_name} <{smtp_user}>"
+            msg["To"] = email
+            with smtplib.SMTP(smtp_host,smtp_port) as s:
+                s.starttls(); s.login(smtp_user,smtp_pass); s.send_message(msg)
+            entry = {"email":email,"subject":subj,"sent_at":datetime.now().isoformat(),"token":token,"opened":False,"specialty":specialty,"followup":is_followup}
             sent_list.append(entry); sent_emails.add(email); save_sent(sent_list)
             leads = [l for l in load_leads() if l["email"].lower() != email]; save_leads(leads)
             yield f"data: {json.dumps({'sent':email,'specialty':specialty})}\n\n"
-
+            
+            # FIX: Wait 1.5 minutes ONLY on success
             delay = random.uniform(90, 120)
             for i in range(int(delay)):
                 yield f"data: {json.dumps({'wait':int(delay-i)})}\n\n"
                 time.sleep(1)
         except Exception as e:
-            yield f"data: {json.dumps({'error':email,'msg':str(e)[:120]})}\n\n"
+            # FIX: Fail immediately on error (no waiting)
+            yield f"data: {json.dumps({'error':email,'msg':str(e)[:80]})}\n\n"
     yield f"data: {json.dumps({'done':True})}\n\n"
 
 @app.route("/api/send", methods=["POST"])
