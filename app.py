@@ -46,7 +46,7 @@ def save_leads(d):  save_json(LEADS_FILE, d)
 def load_sent():    return load_json(SENT_FILE, [])
 def save_sent(d):   save_json(SENT_FILE, d)
 def load_config():  return load_json(CONFIG_FILE, {})
-def save_config(d): save_config(CONFIG_FILE, d)
+def save_config(d): save_json(CONFIG_FILE, d)
 
 def require_auth(f):
     @wraps(f)
