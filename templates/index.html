@@ -432,27 +432,26 @@ tr:hover td{background:rgba(255,255,255,.015);}
   <!-- SETTINGS -->
   <div class="panel" id="p-cfg">
     <div class="sec-head">
-      <div><div class="sec-title">Settings</div><div class="sec-sub">SMTP, tracking and security</div></div>
+      <div><div class="sec-title">Settings</div><div class="sec-sub">SendGrid, tracking and security</div></div>
     </div>
     <div class="two">
       <div class="card">
-        <div class="ctitle">SMTP Configuration</div>
-        <div class="fg"><label class="fl">Host</label><input class="fi" id="c-host" placeholder="smtp.gmail.com"></div>
-        <div class="fg"><label class="fl">Port</label><input class="fi" id="c-port" placeholder="587"></div>
-        <div class="fg"><label class="fl">Email</label><input class="fi" id="c-user" placeholder="you@gmail.com"></div>
-        <div class="fg"><label class="fl">App Password</label><input type="password" class="fi" id="c-pass" placeholder="Gmail App Password — leave blank to keep current"></div>
+        <div class="ctitle">SendGrid Configuration</div>
+        <div class="fg"><label class="fl">SendGrid API Key</label><input type="password" class="fi" id="c-sgkey" placeholder="SG.xxxxxxxxxxxxxxxxxxxx"></div>
+        <div class="fg"><label class="fl">From Email <span style="font-weight:400;text-transform:none;">(must be verified in SendGrid)</span></label><input class="fi" id="c-user" placeholder="you@yourdomain.com"></div>
         <div class="fg"><label class="fl">From Name</label><input class="fi" id="c-name" placeholder="Stylarx"></div>
-        <button class="btn bp bsm" onclick="saveCfg()">Save SMTP</button>
+        <button class="btn bp bsm" onclick="saveCfg()">Save Settings</button>
+        <div class="notice amber" style="margin-top:14px;">
+          <strong>Setup:</strong> Create a free account at <strong>sendgrid.com</strong> → Settings → API Keys → Create key (Full Access). Also verify your sender email under Settings → Sender Authentication. Free tier = 100 emails/day.
+        </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div class="card">
           <div class="ctitle">Open Tracking</div>
-          <div class="fg"><label class="fl">Your Railway URL</label><input class="fi" id="c-url" placeholder="https://your-app.up.railway.app"></div>
+          <div class="fg"><label class="fl">Your App URL</label><input class="fi" id="c-url" placeholder="https://your-app.up.railway.app"></div>
           <button class="btn bp bsm" onclick="saveCfg()" style="margin-bottom:14px;">Save URL</button>
           <div class="notice amber">
-            <strong>How it works:</strong> We embed a 1×1 invisible tracking pixel in each HTML email — the same method used by Mailchimp, HubSpot, and Superhuman. When the recipient opens the email, their client loads the pixel and we mark it as opened.
-            <br><br>
-            <strong>Accuracy:</strong> Works reliably on Gmail (desktop + Android), Outlook, and most web clients. Apple Mail on iOS 15+ has Mail Privacy Protection which pre-fetches images — those will always show as "opened" even if the person hasn't read it. There is no workaround for this. On average, expect ~85–90% accuracy across a typical email list.
+            <strong>How it works:</strong> We embed a 1×1 invisible tracking pixel in each HTML email. When the recipient opens the email, their client loads the pixel and we mark it as opened. ~85–90% accuracy (Apple Mail iOS 15+ always shows opened due to Mail Privacy Protection).
           </div>
         </div>
         <div class="card">
@@ -906,21 +905,22 @@ function cpTpl(eid){
 // ── Settings ───────────────────────────────────────────────────────────────────
 async function loadCfg(){
   const c=await api('/api/config');
-  document.getElementById('c-host').value=c.smtp_host||'smtp.gmail.com';
-  document.getElementById('c-port').value=c.smtp_port||'587';
+  document.getElementById('c-sgkey').value='';  // never pre-fill API key
   document.getElementById('c-user').value=c.smtp_user||'';
   document.getElementById('c-name').value=c.from_name||'Stylarx';
   document.getElementById('c-url').value=c.tracking_url||'';
 }
 async function saveCfg(){
-  const d={smtp_host:document.getElementById('c-host').value,smtp_port:document.getElementById('c-port').value,
-    smtp_user:document.getElementById('c-user').value,from_name:document.getElementById('c-name').value,
-    tracking_url:document.getElementById('c-url').value};
-  const p=document.getElementById('c-pass').value;
-  if(p)d.smtp_pass=p;
+  const d={
+    smtp_user: document.getElementById('c-user').value,
+    from_name: document.getElementById('c-name').value,
+    tracking_url: document.getElementById('c-url').value,
+  };
+  const key=document.getElementById('c-sgkey').value.trim();
+  if(key) d.sendgrid_api_key=key;
   await api('/api/config',{method:'POST',body:JSON.stringify(d)});
   toast('Settings saved','ok');
-  document.getElementById('c-pass').value='';
+  document.getElementById('c-sgkey').value='';
 }
 async function chgPw(){
   const c=document.getElementById('pw-c').value,n=document.getElementById('pw-n').value;
